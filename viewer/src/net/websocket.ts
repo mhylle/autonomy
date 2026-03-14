@@ -110,10 +110,11 @@ export class SimulationClient {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
       // bufferedAmount is how much outbound data is queued (for sends).
-      // For receives, we can't directly measure the inbound buffer.
-      // Instead, check if the WS is still responsive by seeing if
-      // messages are being processed (frameCount advancing).
-      // If no messages processed in 5 seconds, the connection is stalled.
+      // Reconnect if the outbound buffer is excessively large.
+      if (this.ws.bufferedAmount > MAX_BUFFERED_BYTES) {
+        console.warn('WebSocket buffer exceeded limit, reconnecting');
+        this.ws.close();
+      }
     }, BUFFER_CHECK_INTERVAL);
   }
 

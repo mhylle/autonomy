@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { WorldRenderer } from './renderer/WorldRenderer';
 import { SimulationClient } from './net/websocket';
 import { useHudStore, worldData } from './net/state-store';
@@ -22,6 +22,16 @@ function App() {
   const paused = useHudStore((s) => s.paused);
   const speedMultiplier = useHudStore((s) => s.speedMultiplier);
   const selectedEntityId = useHudStore((s) => s.selectedEntityId);
+  const [overlaysEnabled, setOverlaysEnabled] = useState(true);
+
+  // Toggle overlay rendering on the renderer
+  const handleToggleOverlays = useCallback(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    const next = !overlaysEnabled;
+    renderer.setOverlayEnabled(next);
+    setOverlaysEnabled(next);
+  }, [overlaysEnabled]);
 
   // Initialize renderer and WebSocket — runs once
   useEffect(() => {
@@ -86,6 +96,17 @@ function App() {
         <div className={`hud-item ${connected ? 'connected' : 'disconnected'}`}>
           {connected ? 'Connected' : 'Disconnected'}
         </div>
+      </div>
+
+      {/* Overlay Toggle */}
+      <div className="sim-controls" style={{ top: '52px' }}>
+        <button
+          className={`overlay-btn ${overlaysEnabled ? 'active' : ''}`}
+          onClick={handleToggleOverlays}
+          title="Toggle signal/tribe/structure overlays"
+        >
+          {overlaysEnabled ? 'Overlays ON' : 'Overlays OFF'}
+        </button>
       </div>
 
       {/* Simulation Controls */}

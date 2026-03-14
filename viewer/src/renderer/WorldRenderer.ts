@@ -37,6 +37,9 @@ export class WorldRenderer {
   // Color cache
   private colorCache: Map<number, string> = new Map();
 
+  // Overlay toggle — can be set from outside
+  showOverlays = true;
+
   // Viewport change callback for sending updates to the server
   private onViewportChange: ((bounds: { x: number; y: number; width: number; height: number; zoom: number }) => void) | null = null;
 
@@ -85,6 +88,11 @@ export class WorldRenderer {
 
   setOnEntityClick(callback: (id: number) => void): void {
     this.onEntityClick = callback;
+  }
+
+  /** Toggle signal/tribe/composite overlay rendering. */
+  setOverlayEnabled(enabled: boolean): void {
+    this.showOverlays = enabled;
   }
 
   /** Register a callback to be notified when the viewport changes (pan/zoom). */
@@ -165,6 +173,12 @@ export class WorldRenderer {
       ctx.fill();
     }
 
+    // Draw overlays beneath entities: signals and tribe territories
+    if (this.showOverlays) {
+      this.drawSignals(ctx);
+      this.drawTribeTerritories(ctx);
+    }
+
     // Draw entities
     ctx.globalAlpha = 1;
     this.entityHitTargets.length = 0; // reuse array
@@ -179,7 +193,31 @@ export class WorldRenderer {
       ctx.arc(entity.position.x, entity.position.y, radius, 0, Math.PI * 2);
       ctx.fill();
 
+      // Composite leader: outer dashed ring
+      if (this.showOverlays && entity.isCompositeLeader) {
+        const memberCount = entity.compositeMemberCount;
+        const outerRadius = radius + 3 + memberCount * 0.5;
+        ctx.globalAlpha = 0.8;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5 / this.zoom;
+        ctx.setLineDash([3 / this.zoom, 2 / this.zoom]);
+        ctx.beginPath();
+        ctx.arc(entity.position.x, entity.position.y, outerRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       this.entityHitTargets.push({ id, x: entity.position.x, y: entity.position.y, r: radius });
+    }
+
+    // Draw overlays on top: structures, war indicators, tribe name badges,
+    // trade routes, and settlement markers
+    if (this.showOverlays) {
+      this.drawStructures(ctx);
+      this.drawWarIndicators(ctx);
+      this.drawTribeBadges(ctx);
+      this.drawTradeRoutes(ctx);
+      this.drawSettlements(ctx);
     }
 
     // Draw kill indicators (Phase 3.7)
@@ -190,6 +228,151 @@ export class WorldRenderer {
 
     // Draw minimap
     this.minimapRenderer.draw(worldWidth, worldHeight, entities, this.terrainRenderer);
+  }
+
+  /** Draw expanding fading signal rings at each signal position. */
+  private drawSignals(ctx: CanvasRenderingContext2D): void {
+    const signals = worldData.signals;
+    if (!signals || signals.length === 0) return;
+
+    const signalColors: Record<number, string> = {
+      0: 'rgba(74, 222, 128,',  // green
+      1: 'rgba(239, 68, 68,',   // red
+      2: 'rgba(96, 165, 250,',  // blue
+      3: 'rgba(250, 204, 21,',  // yellow
+    };
+
+    for (const signal of signals) {
+      const alpha = signal.strength;
+      if (alpha <= 0) continue;
+      const radius = (1 - signal.strength) * 30;
+      const colorBase = signalColors[signal.signalType] ?? 'rgba(255, 255, 255,';
+      ctx.strokeStyle = `${colorBase} ${alpha})`;
+      ctx.lineWidth = 1.5 / this.zoom;
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(signal.x, signal.y, Math.max(2, radius), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Get a tribe's display color as an HSL string. */
+  private getTribeColor(tribeId: number, alpha: number): string {
+    const hue = (tribeId * 137.5) % 360;
+    return `hsla(${hue}, 70%, 60%, ${alpha})`;
+  }
+
+  /** Draw semi-transparent tribe territory circles at each tribe centroid. */
+  private drawTribeTerritories(ctx: CanvasRenderingContext2D): void {
+    const tribes = worldData.tribes;
+    if (!tribes || tribes.size === 0) return;
+
+    for (const tribe of tribes.values()) {
+      const radius = 20 + tribe.memberCount * 2;
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = this.getTribeColor(tribe.id, 1);
+      ctx.beginPath();
+      ctx.arc(tribe.centroidX, tribe.centroidY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Draw tribe name badges at tribe centroids. */
+  private drawTribeBadges(ctx: CanvasRenderingContext2D): void {
+    const tribes = worldData.tribes;
+    if (!tribes || tribes.size === 0) return;
+
+    const fontSize = Math.max(8, 11 / this.zoom);
+    ctx.font = `bold ${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (const tribe of tribes.values()) {
+      const color = this.getTribeColor(tribe.id, 1);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = color;
+      ctx.fillText(`T${tribe.id}`, tribe.centroidX, tribe.centroidY);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /** Draw red dashed lines between warring tribe centroids with "WAR" label. */
+  private drawWarIndicators(ctx: CanvasRenderingContext2D): void {
+    const wars = worldData.activeWars;
+    const tribes = worldData.tribes;
+    if (!wars || wars.length === 0 || !tribes) return;
+
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+    ctx.lineWidth = 1.5 / this.zoom;
+    ctx.setLineDash([6 / this.zoom, 3 / this.zoom]);
+    ctx.globalAlpha = 0.8;
+
+    const fontSize = Math.max(7, 10 / this.zoom);
+    ctx.font = `bold ${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (const war of wars) {
+      const a = tribes.get(war.tribeAId);
+      const b = tribes.get(war.tribeBId);
+      if (!a || !b) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(a.centroidX, a.centroidY);
+      ctx.lineTo(b.centroidX, b.centroidY);
+      ctx.stroke();
+
+      // "WAR" label at midpoint
+      const mx = (a.centroidX + b.centroidX) / 2;
+      const my = (a.centroidY + b.centroidY) / 2;
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+      ctx.fillText('WAR', mx, my);
+      ctx.setLineDash([6 / this.zoom, 3 / this.zoom]);
+    }
+
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /** Draw structures as hollow squares, with construction arc for in-progress ones. */
+  private drawStructures(ctx: CanvasRenderingContext2D): void {
+    const structures = worldData.structures;
+    if (!structures || structures.length === 0) return;
+
+    const structureColors: Record<string, string> = {
+      wall: '#555555',
+      shelter: '#8B4513',
+      storage: '#EAB308',
+    };
+
+    for (const structure of structures) {
+      const color = structureColors[structure.structureType] ?? '#888888';
+      const half = 5 / this.zoom;
+      const x = structure.x;
+      const y = structure.y;
+
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5 / this.zoom;
+      ctx.strokeRect(x - half, y - half, half * 2, half * 2);
+
+      // Construction arc shows build progress
+      if (structure.progress < 1.0) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2 / this.zoom;
+        ctx.beginPath();
+        ctx.arc(x, y, half * 1.4, -Math.PI / 2, -Math.PI / 2 + structure.progress * Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   /**
@@ -226,6 +409,79 @@ export class WorldRenderer {
       ctx.lineTo(event.x - armLen, event.y + armLen);
       ctx.stroke();
     }
+  }
+
+  /**
+   * Draw settlement markers as yellow diamond shapes with a name label below.
+   * Each settlement is rendered at its world (x, y) position.
+   */
+  private drawSettlements(ctx: CanvasRenderingContext2D): void {
+    const settlements = worldData.settlements;
+    if (!settlements || settlements.size === 0) return;
+
+    const diamondSize = 12 / this.zoom;
+    const fontSize = Math.max(7, 10 / this.zoom);
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    for (const settlement of settlements.values()) {
+      const { x, y, name } = settlement;
+
+      // Diamond fill
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(x, y - diamondSize);
+      ctx.lineTo(x + diamondSize, y);
+      ctx.lineTo(x, y + diamondSize);
+      ctx.lineTo(x - diamondSize, y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dark border
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.5 / this.zoom;
+      ctx.stroke();
+
+      // Name label below the diamond
+      ctx.fillStyle = '#facc15';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText(name, x, y + diamondSize + 2 / this.zoom);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /**
+   * Draw dashed orange lines between connected settlements representing trade routes.
+   */
+  private drawTradeRoutes(ctx: CanvasRenderingContext2D): void {
+    const tradeRoutes = worldData.tradeRoutes;
+    const settlements = worldData.settlements;
+    if (!tradeRoutes || tradeRoutes.length === 0 || !settlements) return;
+
+    ctx.strokeStyle = 'rgba(251, 146, 60, 0.6)';
+    ctx.lineWidth = 1 / this.zoom;
+    ctx.setLineDash([5 / this.zoom, 4 / this.zoom]);
+    ctx.globalAlpha = 0.6;
+
+    for (const route of tradeRoutes) {
+      const from = settlements.get(route.fromSettlement);
+      const to = settlements.get(route.toSettlement);
+      if (!from || !to) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
   }
 
   private getSpeciesColor(speciesId: number): string {

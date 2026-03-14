@@ -192,7 +192,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Viewport subscription: client sends SubscribeViewport with camera bounds
 - [x] Server filters: only include entities within viewport + buffer zone
 - [x] Detail levels: Minimal (position+color at zoom-out), Standard (+ energy/health/size), Detailed (+ everything)
-- [ ] Test: connect viewer, verify bandwidth decreases vs. full-state streaming
+- [x] Test: connect viewer, verify bandwidth decreases vs. full-state streaming
 
 ### Phase 2.6: Evolution -- Genetic Operators
 
@@ -282,7 +282,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] New BT action: MoveTowardMemory(kind_filter) -- move toward location of matching memory
 - [x] Example evolved BT: "if hungry AND recall food location → move to remembered food"
 - [x] Fear drive updated: f(perceived_threats + count_of_WasAttacked_memories)
-- [ ] Viewer: memory inspector panel for selected entity (list of memories with details)
+- [x] Viewer: memory inspector panel for selected entity (list of memories with details)
 - [x] Test: entity finds food, moves away, returns to remembered food location
 
 ### Phase 3.4: Social Relationships
@@ -396,7 +396,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Offspring: new composite with copied member composition pattern
 - [x] Member genomes in offspring: mutated copies of parent's members
 - [x] Composition pattern as genome trait: "this organism type has N members in these roles"
-- [ ] Viewer: composite rendering (cluster of circles bound together), member drill-down panel
+- [x] Viewer: composite rendering (cluster of circles bound together), member drill-down panel
 - [x] Test: composite reproduces, offspring has similar structure
 
 ### Phase 4.5: Emergent Specialization
@@ -424,7 +424,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Signal struct: emitter entity, signal_type (u8, no inherent meaning), position, radius, strength, decay_rate
 - [x] New BT action: Signal(type) -- emit a signal
 - [x] Signal storage: world-level Vec<Signal>, decaying each tick
-- [ ] Signal visualization in viewer: expanding rings, color coded by type
+- [x] Signal visualization in viewer: expanding rings, color coded by type
 - [x] Test: entity emits signal, signal exists in world, signal decays over time
 
 ### Phase 5.2: Signal Perception
@@ -446,7 +446,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Alarm calls emerge: entity emits signal when attacked, kin flee in response
 - [x] Mating calls emerge: entity emits signal when reproductive_urge is high
 - [x] Verify: signal usage patterns correlate with environmental contexts
-- [ ] Test: run 100,000 ticks, analyze signal emission contexts, verify non-random correlation with events
+- [x] Test: run 100,000 ticks, analyze signal emission contexts, verify non-random correlation with events
 
 ### Phase 5.4: Group Formation
 
@@ -457,7 +457,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Tribe membership: entities join/leave tribes based on relationship scores
 - [x] Tribe-level data: member list, territory centroid, population, total resources
 - [x] Tribe identity: color, derived from founding members' genomes
-- [ ] Viewer: tribe overlay, tribe statistics panel
+- [x] Viewer: tribe overlay, tribe statistics panel
 - [x] Test: place entities in food-rich area, verify tribe forms after sustained interaction
 
 ### Phase 5.5: Territory
@@ -468,7 +468,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Territorial behavior: prefer to stay within tribe territory
 - [x] Border detection: where territories of different tribes meet
 - [x] Territorial defense: increased aggression toward non-tribe members near territory
-- [ ] Viewer: territory boundaries, heatmap of tribe presence
+- [x] Viewer: territory boundaries, heatmap of tribe presence
 - [x] Test: two tribes near each other develop distinct territories with defended border
 
 ### Phase 5.6: Group Combat
@@ -479,7 +479,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Strength in numbers: group attack is more effective than individual attacks
 - [x] Retreat behavior: entity flees when tribe is losing (many members dead/fleeing)
 - [x] War events: sustained combat between two tribes logged as higher-level event
-- [ ] Viewer: war visualization, tribe population changes during conflict
+- [x] Viewer: war visualization, tribe population changes during conflict
 - [x] Test: two tribes encounter each other, combat emerges, losing tribe retreats or is destroyed
 
 ### Phase 5.7: Teaching and Cultural Transmission
@@ -508,7 +508,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] ObjectType: derived from material properties (not named categories)
 - [x] Objects persist in the world, occupy space, can be perceived
 - [x] Object decay: durability decreases over time, object eventually disappears
-- [ ] Viewer: render objects as shapes based on material properties
+- [x] Viewer: render objects as shapes based on material properties
 - [x] Test: spawn object, verify it persists, verify it decays
 
 ### Phase 6.2: Object Interaction
@@ -560,7 +560,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Construction system: entity places materials at location over multiple ticks
 - [x] ConstructionSite component: tracks progress, required materials, blueprint
 - [x] Spatial index integration: structures block movement, provide cover
-- [ ] Viewer: structure rendering, construction progress indicators
+- [x] Viewer: structure rendering, construction progress indicators
 - [x] Test: entity builds wall, verify movement blocked; entity builds shelter, verify damage reduction
 
 ### Phase 6.6: Crafting -- Combining Objects
@@ -596,7 +596,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Deposit/withdraw actions: entities can place items in storage, retrieve later
 - [x] Shared storage: tribe members can access tribal storage
 - [x] Hoarding behavior: emergent from BT evolution (store when abundant, retrieve when scarce)
-- [ ] Viewer: storage contents panel, resource flow visualization
+- [x] Viewer: storage contents panel, resource flow visualization
 - [x] Test: entity stores food during abundance, retrieves during scarcity
 
 ### Phase 6.9: Knowledge Transmission for Construction
@@ -621,7 +621,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Housing: structures that reduce energy cost (shelter from environment)
 - [x] Irrigation: channels that increase resource growth in adjacent cells
 - [x] Settlement detection: cluster of structures + persistent population = settlement
-- [ ] Viewer: infrastructure overlay, settlement boundaries
+- [x] Viewer: infrastructure overlay, settlement boundaries
 - [x] Test: verify tribe builds structures that form a connected settlement
 
 ---
@@ -658,7 +658,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Chapter detection: group events into life phases (youth, exploration, combat, parenthood, etc.)
 - [x] Key relationships: identify most important relationships from memory and social data
 - [x] Legacy: offspring, territory influenced, tribe membership history
-- [ ] Viewer: entity biography page with timeline, key events, relationships
+- [x] Viewer: entity biography page with timeline, key events, relationships
 - [x] Test: select long-lived entity, verify biography contains all major life events
 
 ### Phase 7.4: History Browser
@@ -671,7 +671,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] "What-if" forking: branch from any snapshot with modified parameters
 - [x] Event search: find all events matching criteria (entity, type, tick range)
 - [x] Historical analytics: population graphs, species diversity, resource levels over time
-- [ ] Viewer: timeline component, bookmark list, analytics charts
+- [x] Viewer: timeline component, bookmark list, analytics charts
 - [x] Test: bookmark a moment, seek to it, verify correct state displayed
 
 ### Phase 7.5: LLM Narration
@@ -684,7 +684,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Historical narration: generate summary of entity life or civilization history
 - [x] Narration styles: documentary, epic, journal, clinical
 - [x] Narration cache: don't re-narrate events already narrated
-- [ ] Viewer: narration panel alongside simulation, narration playback
+- [x] Viewer: narration panel alongside simulation, narration playback
 - [x] Test: trigger arc, request narration, verify coherent prose output
 
 ---
@@ -766,7 +766,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Settlement entity: virtual entity representing the settlement (population, structures, territory, resources)
 - [x] Settlement naming: generated from founding entities' genome hashes
 - [x] Settlement growth/decline: tracked over time
-- [ ] Viewer: settlement markers, settlement detail panel, settlement history
+- [x] Viewer: settlement markers, settlement detail panel, settlement history
 - [x] Test: tribe builds structures in an area, verify settlement detected
 
 ### Phase 9.2: Resource Specialization
@@ -788,7 +788,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Value estimation: entities learn which resources are scarce elsewhere (from memory)
 - [x] Trade signals: settlements emit signals indicating surplus/deficit
 - [x] Mutual benefit: both settlements gain from trade (comparative advantage)
-- [ ] Viewer: trade route visualization, resource flow arrows
+- [x] Viewer: trade route visualization, resource flow arrows
 - [x] Test: settlement A has surplus food, settlement B has surplus tools, verify trade emerges
 
 ### Phase 9.4: Defense and Warfare
@@ -801,7 +801,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Siege mechanics: sustained assault on fortified settlement
 - [x] Conquest: defeated settlement absorbed by victor
 - [x] War history: recorded as major narrative event
-- [ ] Viewer: military events, defensive structures, battle visualization
+- [x] Viewer: military events, defensive structures, battle visualization
 - [x] Test: resource-poor settlement raids resource-rich one, verify combat around structures
 
 ### Phase 9.5: Emergent Hierarchy
@@ -823,7 +823,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Cultural drift: isolated settlements diverge culturally over time
 - [x] Cultural exchange: trade and contact spread cultural elements
 - [x] Language divergence: signal meanings drift between separated groups
-- [ ] Viewer: cultural comparison between settlements
+- [x] Viewer: cultural comparison between settlements
 - [x] Test: separate two settlements for many generations, verify measurable cultural divergence
 
 ### Phase 9.7: NEAT Integration
@@ -1033,7 +1033,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Long-distance pathfinding: navigate between chunks toward perceived better conditions
 - [x] Species range maps: track where each species exists across chunks
 - [x] Colonization: entities arriving in uninhabited chunks establish new populations
-- [ ] Viewer: world-scale species range map, migration path visualization
+- [x] Viewer: world-scale species range map, migration path visualization
 - [x] Test: overpopulate a region, verify emigration to adjacent chunks
 
 ### Phase 11.5: Multi-Civilization Encounters
@@ -1046,7 +1046,7 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 - [x] Cultural exchange: successful contact leads to signal/blueprint sharing
 - [x] Conquest: one civilization overwhelms another
 - [x] Narrative significance: first contact is always a major story event
-- [ ] Viewer: civilization map, first-contact events highlighted
+- [x] Viewer: civilization map, first-contact events highlighted
 - [x] Test: seed two separated civilizations, verify they eventually encounter each other
 
 ### Phase 11.6: World-Scale Analytics

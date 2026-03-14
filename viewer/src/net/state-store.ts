@@ -1,6 +1,40 @@
 import { create } from 'zustand';
-import type { EntityState, ResourceState, TerrainGrid, WorldSnapshot, TickDelta } from './protocol';
+import type { EntityState, ResourceState, TerrainGrid, WorldSnapshot, TickDelta, SignalState, TribeInfo, ActiveWar, StructureState } from './protocol';
 import { recordHistorySample } from './history';
+
+// Temporary local interfaces until protocol.ts is extended
+export interface SettlementState {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  population: number;
+  tribeId: number;
+  foundingTick: number;
+  defenseScore: number;
+}
+
+export interface TradeRouteState {
+  fromSettlement: number;
+  toSettlement: number;
+  resourceType: string;
+  volume: number;
+  tripCount: number;
+}
+
+export interface CulturalProfile {
+  tribeId: number;
+  complexity: number;
+  signalSummary: string;
+}
+
+export interface ObjectState {
+  id: number;
+  x: number;
+  y: number;
+  material: string;
+  mass: number;
+}
 
 /**
  * A kill event records where an entity died, used for rendering
@@ -27,6 +61,22 @@ export const worldData = {
   terrain: null as TerrainGrid | null,
   /** Recent kill events for rendering death indicators. */
   killEvents: [] as KillEvent[],
+  /** Current active signals in the world. */
+  signals: [] as SignalState[],
+  /** Tribe data keyed by tribe_id. */
+  tribes: new Map<number, TribeInfo>(),
+  /** Currently active wars between tribes. */
+  activeWars: [] as ActiveWar[],
+  /** Structures placed in the world. */
+  structures: [] as StructureState[],
+  /** Settlements keyed by settlement id. */
+  settlements: new Map<number, SettlementState>(),
+  /** Trade routes between settlements. */
+  tradeRoutes: [] as TradeRouteState[],
+  /** Cultural profiles keyed by tribe_id. */
+  culturalProfiles: new Map<number, CulturalProfile>(),
+  /** Physical objects in the world. */
+  objectsInWorld: [] as ObjectState[],
 };
 
 export function applySnapshotToWorld(snapshot: WorldSnapshot): void {
@@ -41,6 +91,31 @@ export function applySnapshotToWorld(snapshot: WorldSnapshot): void {
   worldData.worldWidth = snapshot.worldWidth;
   worldData.worldHeight = snapshot.worldHeight;
   worldData.terrain = snapshot.terrain;
+
+  // Populate new world data from snapshot (extended fields)
+  worldData.signals = snapshot.signals;
+  worldData.tribes.clear();
+  for (const tribe of snapshot.tribes) {
+    worldData.tribes.set(tribe.id, tribe);
+  }
+  worldData.activeWars = snapshot.activeWars;
+  worldData.structures = snapshot.structures;
+
+  // Populate settlement, trade route, cultural profile and object data
+  worldData.settlements.clear();
+  if ((snapshot as any).settlements) {
+    for (const s of (snapshot as any).settlements as SettlementState[]) {
+      worldData.settlements.set(s.id, s);
+    }
+  }
+  worldData.tradeRoutes = (snapshot as any).tradeRoutes ?? [];
+  worldData.culturalProfiles.clear();
+  if ((snapshot as any).culturalProfiles) {
+    for (const c of (snapshot as any).culturalProfiles as CulturalProfile[]) {
+      worldData.culturalProfiles.set(c.tribeId, c);
+    }
+  }
+  worldData.objectsInWorld = (snapshot as any).objectsInWorld ?? [];
 
   // Record history sample on snapshot
   recordHistorySample(snapshot.tick, worldData.entities);
@@ -83,6 +158,16 @@ export function applyDeltaToWorld(delta: TickDelta): void {
 
   for (const resource of delta.resourceChanges) {
     worldData.resources.set(resource.id, resource);
+  }
+
+  // Apply war changes
+  worldData.activeWars = delta.warChanges;
+
+  // Apply settlement changes from delta
+  if ((delta as any).settlementChanges) {
+    for (const s of (delta as any).settlementChanges as SettlementState[]) {
+      worldData.settlements.set(s.id, s);
+    }
   }
 
   // Record history sample after delta applied

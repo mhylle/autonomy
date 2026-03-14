@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use crate::components::{Age, Energy, Genome, Health, Identity, Position, Size};
+use crate::components::composite::CompositeBody;
+use crate::components::tribe::TribeId;
 use crate::core::world::SimulationWorld;
-use crate::net::protocol::autonomy::{EntityState, ResourceState, TickDelta, Vec2};
+use crate::net::protocol::autonomy::{ActiveWar, EntityState, ResourceState, SettlementState, TickDelta, Vec2};
 use crate::net::server::ViewportBounds;
 
 /// Buffer zone (in world units) added around the viewport for filtering.
@@ -72,6 +74,9 @@ fn apply_detail_level(state: EntityState, level: DetailLevel) -> EntityState {
             max_lifespan: 0,
             size: 0.0,
             generation: 0,
+            tribe_id: 0,
+            is_composite_leader: false,
+            composite_member_count: 0,
         },
     }
 }
@@ -169,12 +174,25 @@ impl DiffEngine {
         let mut current_ids = HashMap::new();
 
         // Build current entity states.
-        for (entity, (pos, energy, health, age, size, genome, identity)) in world
+        for (entity, (pos, energy, health, age, size, genome, identity, tribe, composite)) in world
             .ecs
-            .query::<(&Position, &Energy, &Health, &Age, &Size, &Genome, &Identity)>()
+            .query::<(
+                &Position,
+                &Energy,
+                &Health,
+                &Age,
+                &Size,
+                &Genome,
+                &Identity,
+                Option<&TribeId>,
+                Option<&CompositeBody>,
+            )>()
             .iter()
         {
             let id = entity.to_bits().get();
+            let tribe_id = tribe.and_then(|t| t.0).unwrap_or(0);
+            let is_composite_leader = composite.is_some();
+            let composite_member_count = composite.map(|c| c.member_count() as u32).unwrap_or(0);
             let state = EntityState {
                 id,
                 position: Some(Vec2 { x: pos.x, y: pos.y }),
@@ -187,6 +205,9 @@ impl DiffEngine {
                 size: size.radius,
                 species_id: genome.species_id,
                 generation: identity.generation,
+                tribe_id,
+                is_composite_leader,
+                composite_member_count,
             };
             let snapshot = EntitySnapshot::from_state(&state);
 
@@ -243,6 +264,32 @@ impl DiffEngine {
         self.prev_entities = current_ids;
         self.prev_resources = current_resources;
 
+        let war_changes: Vec<ActiveWar> = world
+            .active_wars
+            .iter()
+            .map(|(&(a, b), &declared)| ActiveWar {
+                tribe_a_id: a,
+                tribe_b_id: b,
+                declared_tick: declared,
+            })
+            .collect();
+
+        let settlement_changes: Vec<SettlementState> = world
+            .civilization
+            .settlements
+            .values()
+            .map(|s| SettlementState {
+                id: s.id,
+                name: s.name.clone(),
+                x: s.x,
+                y: s.y,
+                population: s.population as u32,
+                tribe_id: s.tribe_id,
+                founding_tick: s.founding_tick,
+                defense_score: s.defense_score,
+            })
+            .collect();
+
         TickDelta {
             tick: world.tick,
             spawned,
@@ -250,6 +297,8 @@ impl DiffEngine {
             died,
             resource_changes,
             entity_count: world.entity_count(),
+            war_changes,
+            settlement_changes,
         }
     }
 }

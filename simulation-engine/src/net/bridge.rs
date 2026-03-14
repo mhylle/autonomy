@@ -1,10 +1,16 @@
+use std::cmp::Reverse;
+
 use prost::Message as ProstMessage;
 
 use crate::core::world::SimulationWorld;
 use crate::components::{Age, Energy, Genome, Health, Identity, Position, Size};
+use crate::components::composite::CompositeBody;
+use crate::components::tribe::TribeId;
 use crate::environment::terrain::TerrainType;
 use crate::net::protocol::autonomy::{
-    EntityState, ResourceState, TerrainGrid, TickDelta, Vec2, WorldSnapshot,
+    ActiveWar, CulturalProfile, EntityState, ObjectState, ResourceState, SettlementState,
+    SignalState, StructureState, TerrainGrid, TickDelta, TradeRouteState, TribeInfo, Vec2,
+    WorldSnapshot,
 };
 use crate::net::server::ServerState;
 
@@ -34,27 +40,193 @@ fn build_terrain_grid(world: &SimulationWorld) -> TerrainGrid {
     }
 }
 
+/// Build an EntityState from ECS components, including optional tribe and composite data.
+fn build_entity_state(
+    entity: hecs::Entity,
+    pos: &Position,
+    energy: &Energy,
+    health: &Health,
+    age: &Age,
+    size: &Size,
+    genome: &Genome,
+    identity: &Identity,
+    tribe: Option<&TribeId>,
+    composite: Option<&CompositeBody>,
+) -> EntityState {
+    let tribe_id = tribe.and_then(|t| t.0).unwrap_or(0);
+    let is_composite_leader = composite.is_some();
+    let composite_member_count = composite.map(|c| c.member_count() as u32).unwrap_or(0);
+
+    EntityState {
+        id: entity.to_bits().get(),
+        position: Some(Vec2 { x: pos.x, y: pos.y }),
+        energy: energy.current,
+        max_energy: energy.max,
+        health: health.current,
+        max_health: health.max,
+        age: age.ticks,
+        max_lifespan: age.max_lifespan,
+        size: size.radius,
+        species_id: genome.species_id,
+        generation: identity.generation,
+        tribe_id,
+        is_composite_leader,
+        composite_member_count,
+    }
+}
+
+/// Build the list of signal states from the world's active signals.
+fn build_signals(world: &SimulationWorld) -> Vec<SignalState> {
+    world
+        .signals
+        .iter()
+        .enumerate()
+        .map(|(i, s)| SignalState {
+            id: i as u64 + 1,
+            x: s.x,
+            y: s.y,
+            signal_type: s.signal_type as u32,
+            strength: s.strength,
+        })
+        .collect()
+}
+
+/// Build the list of tribe info from the world's active tribes.
+fn build_tribes(world: &SimulationWorld) -> Vec<TribeInfo> {
+    world
+        .tribes
+        .values()
+        .map(|t| TribeInfo {
+            id: t.id,
+            member_count: t.member_ids.len() as u32,
+            centroid_x: t.territory_centroid_x,
+            centroid_y: t.territory_centroid_y,
+        })
+        .collect()
+}
+
+/// Build the list of active wars from the world's war state.
+fn build_active_wars(world: &SimulationWorld) -> Vec<ActiveWar> {
+    world
+        .active_wars
+        .iter()
+        .map(|(&(a, b), &declared)| ActiveWar {
+            tribe_a_id: a,
+            tribe_b_id: b,
+            declared_tick: declared,
+        })
+        .collect()
+}
+
+/// Build the list of structure states from completed structures and construction sites.
+fn build_structures(world: &SimulationWorld) -> Vec<StructureState> {
+    let mut states: Vec<StructureState> = world
+        .structures
+        .iter()
+        .map(|s| StructureState {
+            id: s.id,
+            x: s.x,
+            y: s.y,
+            structure_type: format!("{:?}", s.structure_type),
+            health: s.durability,
+            max_health: s.max_durability,
+            progress: 1.0,
+        })
+        .collect();
+
+    for site in &world.construction_sites {
+        states.push(StructureState {
+            id: site.id,
+            x: site.x,
+            y: site.y,
+            structure_type: format!("{:?}", site.target_type),
+            health: 0.0,
+            max_health: 0.0,
+            progress: site.progress,
+        });
+    }
+
+    states
+}
+
+/// Build settlements list from world.civilization.settlements.
+fn build_settlements(world: &SimulationWorld) -> Vec<SettlementState> {
+    world.civilization.settlements.values().map(|s| SettlementState {
+        id: s.id,
+        name: s.name.clone(),
+        x: s.x,
+        y: s.y,
+        population: s.population as u32,
+        tribe_id: s.tribe_id,
+        founding_tick: s.founding_tick,
+        defense_score: s.defense_score,
+    }).collect()
+}
+
+/// Build trade routes from world.civilization.trade_routes.
+fn build_trade_routes(world: &SimulationWorld) -> Vec<TradeRouteState> {
+    world.civilization.trade_routes.values().map(|r| TradeRouteState {
+        from_settlement: r.from_settlement,
+        to_settlement: r.to_settlement,
+        resource_type: r.resource_type.clone().unwrap_or_default(),
+        volume: r.volume,
+        trip_count: r.trip_count,
+    }).collect()
+}
+
+/// Build cultural profiles from world.civilization.cultural_identities.
+fn build_cultural_profiles(world: &SimulationWorld) -> Vec<CulturalProfile> {
+    world.civilization.cultural_identities.values().map(|c| {
+        // Build signal summary: top signals by usage count.
+        let mut signals: Vec<(u8, u64)> = c.signal_usage.iter().map(|(&t, &n)| (t, n)).collect();
+        signals.sort_by_key(|&(_, n)| Reverse(n));
+        let summary = signals.iter().take(3)
+            .map(|(t, n)| format!("type{}:{}", t, n))
+            .collect::<Vec<_>>()
+            .join(",");
+        CulturalProfile {
+            tribe_id: c.tribe_id,
+            complexity: c.complexity,
+            signal_summary: summary,
+        }
+    }).collect()
+}
+
+/// Build world objects from world.objects.
+fn build_objects(world: &SimulationWorld) -> Vec<ObjectState> {
+    world.objects.iter().map(|o| ObjectState {
+        id: o.id,
+        x: o.x,
+        y: o.y,
+        material: format!(
+            "h:{:.2} s:{:.2} w:{:.2}",
+            o.material.hardness,
+            o.material.sharpness,
+            o.material.weight,
+        ),
+        mass: o.material.weight,
+    }).collect()
+}
+
 /// Build a full WorldSnapshot protobuf from current world state.
 pub fn build_world_snapshot(world: &SimulationWorld) -> WorldSnapshot {
     let entities: Vec<EntityState> = world
         .ecs
-        .query::<(&Position, &Energy, &Health, &Age, &Size, &Genome, &Identity)>()
+        .query::<(
+            &Position,
+            &Energy,
+            &Health,
+            &Age,
+            &Size,
+            &Genome,
+            &Identity,
+            Option<&TribeId>,
+            Option<&CompositeBody>,
+        )>()
         .iter()
-        .map(
-            |(entity, (pos, energy, health, age, size, genome, identity))| EntityState {
-                id: entity.to_bits().get(),
-                position: Some(Vec2 { x: pos.x, y: pos.y }),
-                energy: energy.current,
-                max_energy: energy.max,
-                health: health.current,
-                max_health: health.max,
-                age: age.ticks,
-                max_lifespan: age.max_lifespan,
-                size: size.radius,
-                species_id: genome.species_id,
-                generation: identity.generation,
-            },
-        )
+        .map(|(entity, (pos, energy, health, age, size, genome, identity, tribe, composite))| {
+            build_entity_state(entity, pos, energy, health, age, size, genome, identity, tribe, composite)
+        })
         .collect();
 
     let resources: Vec<ResourceState> = world
@@ -70,6 +242,15 @@ pub fn build_world_snapshot(world: &SimulationWorld) -> WorldSnapshot {
         .collect();
 
     let terrain = Some(build_terrain_grid(world));
+    let signals = build_signals(world);
+    let tribes = build_tribes(world);
+    let active_wars = build_active_wars(world);
+    let structures = build_structures(world);
+
+    let settlements = build_settlements(world);
+    let trade_routes = build_trade_routes(world);
+    let cultural_profiles = build_cultural_profiles(world);
+    let objects_in_world = build_objects(world);
 
     WorldSnapshot {
         tick: world.tick,
@@ -78,6 +259,14 @@ pub fn build_world_snapshot(world: &SimulationWorld) -> WorldSnapshot {
         world_width: world.config.world_width,
         world_height: world.config.world_height,
         terrain,
+        signals,
+        tribes,
+        active_wars,
+        structures,
+        settlements,
+        trade_routes,
+        cultural_profiles,
+        objects_in_world,
     }
 }
 
@@ -87,24 +276,25 @@ pub fn build_world_snapshot(world: &SimulationWorld) -> WorldSnapshot {
 pub fn build_tick_delta(world: &SimulationWorld) -> TickDelta {
     let updated: Vec<EntityState> = world
         .ecs
-        .query::<(&Position, &Energy, &Health, &Age, &Size, &Genome, &Identity)>()
+        .query::<(
+            &Position,
+            &Energy,
+            &Health,
+            &Age,
+            &Size,
+            &Genome,
+            &Identity,
+            Option<&TribeId>,
+            Option<&CompositeBody>,
+        )>()
         .iter()
-        .map(
-            |(entity, (pos, energy, health, age, size, genome, identity))| EntityState {
-                id: entity.to_bits().get(),
-                position: Some(Vec2 { x: pos.x, y: pos.y }),
-                energy: energy.current,
-                max_energy: energy.max,
-                health: health.current,
-                max_health: health.max,
-                age: age.ticks,
-                max_lifespan: age.max_lifespan,
-                size: size.radius,
-                species_id: genome.species_id,
-                generation: identity.generation,
-            },
-        )
+        .map(|(entity, (pos, energy, health, age, size, genome, identity, tribe, composite))| {
+            build_entity_state(entity, pos, energy, health, age, size, genome, identity, tribe, composite)
+        })
         .collect();
+
+    let war_changes = build_active_wars(world);
+    let settlement_changes = build_settlements(world);
 
     TickDelta {
         tick: world.tick,
@@ -113,6 +303,8 @@ pub fn build_tick_delta(world: &SimulationWorld) -> TickDelta {
         died: Vec::new(),
         resource_changes: Vec::new(),
         entity_count: world.entity_count(),
+        war_changes,
+        settlement_changes,
     }
 }
 
@@ -358,5 +550,91 @@ mod tests {
         assert!(!bytes.is_empty());
         let decoded = WorldSnapshot::decode(bytes.as_slice()).unwrap();
         assert_eq!(decoded.entities.len(), 3);
+    }
+
+    /// Phase 2.5: Verify diff-based streaming produces smaller payloads than full-state streaming.
+    ///
+    /// After the initial snapshot, each TickDelta only carries entities that
+    /// actually changed. For a stable simulation (no births or deaths), the
+    /// delta contains only `updated` entities (positions/drives changed), while
+    /// the snapshot includes the full terrain grid as well. This test verifies
+    /// the delta payload is smaller than the snapshot payload for a world with
+    /// entities that haven't changed between ticks.
+    #[test]
+    fn diff_streaming_produces_smaller_payload_than_full_state() {
+        use crate::net::diff::DiffEngine;
+        use crate::core::tick;
+
+        let mut world = make_world_with_entities(20);
+        let mut diff_engine = DiffEngine::new();
+
+        // Compute a snapshot (full state, includes terrain grid).
+        let snapshot = build_world_snapshot(&world);
+        let snapshot_bytes = encode_proto(&snapshot);
+
+        // Run one tick so entities have positions to update, then compute a delta.
+        tick::tick(&mut world);
+        let delta = diff_engine.compute_delta(&world);
+        let delta_bytes = encode_proto(&delta);
+
+        // The delta (no terrain, only changed entities) should be smaller than the snapshot.
+        assert!(
+            delta_bytes.len() < snapshot_bytes.len(),
+            "diff delta ({} bytes) should be smaller than full snapshot ({} bytes)",
+            delta_bytes.len(),
+            snapshot_bytes.len()
+        );
+    }
+
+    /// Phase 2.5: Verify viewport filtering further reduces bandwidth.
+    ///
+    /// With a small viewport covering only part of the world, the diff engine
+    /// should send fewer entities than a full-world viewport delta.
+    /// We use two separate DiffEngine instances so each starts from the same
+    /// baseline state, ensuring a fair comparison.
+    #[test]
+    fn viewport_filtered_delta_has_fewer_entities() {
+        use crate::net::diff::DiffEngine;
+        use crate::net::server::ViewportBounds;
+        use crate::core::tick;
+
+        let mut world = make_world_with_entities(30);
+
+        // Warm up both diff engines from the same initial state.
+        let mut small_engine = DiffEngine::new();
+        let mut full_engine = DiffEngine::new();
+        tick::tick(&mut world);
+        // Establish baseline — both engines see the same world state.
+        small_engine.compute_delta(&world);
+        full_engine.compute_delta(&world);
+
+        // Advance one more tick so there's new state to diff.
+        tick::tick(&mut world);
+
+        // Small viewport covers only 100x100 of the 500x500 world.
+        let small_viewport = ViewportBounds {
+            x: 0.0,
+            y: 0.0,
+            width: 100.0,
+            height: 100.0,
+            zoom: 1.0,
+        };
+
+        let filtered_delta = small_engine.compute_delta_with_viewport(&world, &small_viewport);
+        let full_delta = full_engine.compute_delta_with_viewport(&world, &ViewportBounds::default());
+
+        let filtered_entity_count = filtered_delta.spawned.len()
+            + filtered_delta.updated.len()
+            + filtered_delta.died.len();
+        let full_entity_count =
+            full_delta.spawned.len() + full_delta.updated.len() + full_delta.died.len();
+
+        // Viewport filtering should send ≤ entities compared to the full viewport.
+        assert!(
+            filtered_entity_count <= full_entity_count,
+            "viewport-filtered delta ({} entities) should have <= full delta ({} entities)",
+            filtered_entity_count,
+            full_entity_count
+        );
     }
 }

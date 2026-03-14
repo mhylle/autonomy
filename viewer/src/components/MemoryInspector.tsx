@@ -1,36 +1,45 @@
 /**
  * Memory Inspector panel (Phase 3.3).
  *
- * Displays a placeholder for entity memory data. The memory payload
- * is not yet included in the EntityState protocol message, so this
- * shows a ready-to-populate list layout that will be wired up once
- * the EntityDetail protocol extension is available.
+ * Shows a polished memory journal layout. Each section is ready to
+ * receive real data once the EntityDetail protocol extension is available.
+ * Until then, all sections display a "no data" placeholder.
  */
-export function MemoryInspector() {
-  // Placeholder memory entries showing the intended layout.
-  const placeholderEntries = [
-    { label: 'Food sources', icon: '\u25CF' },
-    { label: 'Threats', icon: '\u25B2' },
-    { label: 'Kin encounters', icon: '\u2666' },
-    { label: 'Territory', icon: '\u25A0' },
-  ];
 
+interface MemorySection {
+  label: string;
+  icon: string;
+  color: string;
+}
+
+const MEMORY_SECTIONS: MemorySection[] = [
+  { label: 'Food Events',     icon: '\u25CF', color: '#4ade80' },
+  { label: 'Combat Events',   icon: '\u25B2', color: '#ef4444' },
+  { label: 'Social Events',   icon: '\u2666', color: '#60a5fa' },
+  { label: 'Territory Events',icon: '\u25A0', color: '#facc15' },
+];
+
+export function MemoryInspector() {
   return (
     <div className="entity-stats-group">
-      <h4>Memory</h4>
+      <h4>Memory Journal</h4>
       <div className="memory-inspector">
         <div className="memory-placeholder-notice">
-          Requires EntityDetail protocol
+          Requires EntityDetail protocol (not yet implemented)
         </div>
-        <ul className="memory-list">
-          {placeholderEntries.map((entry) => (
-            <li key={entry.label} className="memory-item memory-item-disabled">
-              <span className="memory-icon">{entry.icon}</span>
-              <span className="memory-label">{entry.label}</span>
-              <span className="memory-count">--</span>
-            </li>
+        <div className="memory-journal">
+          {MEMORY_SECTIONS.map((section) => (
+            <div key={section.label} className="memory-journal-section">
+              <div className="memory-journal-section-header">
+                <span className="memory-icon" style={{ color: section.color }}>{section.icon}</span>
+                <span className="memory-journal-section-label">{section.label}</span>
+              </div>
+              <div className="memory-journal-section-body">
+                <span className="memory-no-data">No data — EntityDetail protocol required</span>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </div>
   );

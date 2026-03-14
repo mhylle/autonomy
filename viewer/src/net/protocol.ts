@@ -19,6 +19,9 @@ export interface EntityState {
   size: number;
   speciesId: number;
   generation: number;
+  tribeId: number;              // 0 = no tribe
+  isCompositeLeader: boolean;
+  compositeMemberCount: number;
 }
 
 export interface ResourceState {
@@ -36,6 +39,70 @@ export interface TerrainGrid {
   types: number[];
 }
 
+export interface SignalState {
+  id: number;
+  x: number;
+  y: number;
+  signalType: number;
+  strength: number;
+}
+
+export interface TribeInfo {
+  id: number;
+  memberCount: number;
+  centroidX: number;
+  centroidY: number;
+}
+
+export interface ActiveWar {
+  tribeAId: number;
+  tribeBId: number;
+  declaredTick: number;
+}
+
+export interface StructureState {
+  id: number;
+  x: number;
+  y: number;
+  structureType: string;
+  health: number;
+  maxHealth: number;
+  progress: number;
+}
+
+export interface SettlementState {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  population: number;
+  tribeId: number;
+  foundingTick: number;
+  defenseScore: number;
+}
+
+export interface TradeRouteState {
+  fromSettlement: number;
+  toSettlement: number;
+  resourceType: string;
+  volume: number;
+  tripCount: number;
+}
+
+export interface CulturalProfile {
+  tribeId: number;
+  complexity: number;
+  signalSummary: string;
+}
+
+export interface ObjectState {
+  id: number;
+  x: number;
+  y: number;
+  material: string;
+  mass: number;
+}
+
 export interface WorldSnapshot {
   tick: number;
   entities: EntityState[];
@@ -43,6 +110,14 @@ export interface WorldSnapshot {
   worldWidth: number;
   worldHeight: number;
   terrain: TerrainGrid | null;
+  signals: SignalState[];
+  tribes: TribeInfo[];
+  activeWars: ActiveWar[];
+  structures: StructureState[];
+  settlements: SettlementState[];
+  tradeRoutes: TradeRouteState[];
+  culturalProfiles: CulturalProfile[];
+  objectsInWorld: ObjectState[];
 }
 
 export interface TickDelta {
@@ -52,6 +127,8 @@ export interface TickDelta {
   died: number[];
   resourceChanges: ResourceState[];
   entityCount: number;
+  warChanges: ActiveWar[];
+  settlementChanges: SettlementState[];
 }
 
 let worldSnapshotType: protobuf.Type | null = null;

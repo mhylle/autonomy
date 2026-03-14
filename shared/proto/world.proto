@@ -18,6 +18,9 @@ message EntityState {
     double size = 9;
     uint64 species_id = 10;
     uint32 generation = 11;
+    uint64 tribe_id = 12;
+    bool is_composite_leader = 13;
+    uint32 composite_member_count = 14;
 }
 
 message ResourceState {
@@ -35,6 +38,71 @@ message TerrainGrid {
     repeated int32 types = 4;
 }
 
+message SignalState {
+    uint64 id = 1;
+    double x = 2;
+    double y = 3;
+    uint32 signal_type = 4;
+    double strength = 5;
+}
+
+message TribeInfo {
+    uint64 id = 1;
+    uint32 member_count = 2;
+    double centroid_x = 3;
+    double centroid_y = 4;
+}
+
+message ActiveWar {
+    uint64 tribe_a_id = 1;
+    uint64 tribe_b_id = 2;
+    uint64 declared_tick = 3;
+}
+
+message StructureState {
+    uint64 id = 1;
+    double x = 2;
+    double y = 3;
+    string structure_type = 4;
+    double health = 5;
+    double max_health = 6;
+    double progress = 7;
+}
+
+message SettlementState {
+    uint64 id = 1;
+    string name = 2;
+    double x = 3;
+    double y = 4;
+    uint32 population = 5;
+    uint64 tribe_id = 6;
+    uint64 founding_tick = 7;
+    double defense_score = 8;
+}
+
+message TradeRouteState {
+    uint64 from_settlement = 1;
+    uint64 to_settlement = 2;
+    string resource_type = 3;
+    uint64 volume = 4;
+    uint64 trip_count = 5;
+}
+
+message CulturalProfile {
+    uint64 tribe_id = 1;
+    double complexity = 2;
+    // Top 3 signal types as comma-separated string (simple encoding)
+    string signal_summary = 3;
+}
+
+message ObjectState {
+    uint64 id = 1;
+    double x = 2;
+    double y = 3;
+    string material = 4;
+    double mass = 5;
+}
+
 message WorldSnapshot {
     uint64 tick = 1;
     repeated EntityState entities = 2;
@@ -42,6 +110,14 @@ message WorldSnapshot {
     double world_width = 4;
     double world_height = 5;
     TerrainGrid terrain = 6;
+    repeated SignalState signals = 7;
+    repeated TribeInfo tribes = 8;
+    repeated ActiveWar active_wars = 9;
+    repeated StructureState structures = 10;
+    repeated SettlementState settlements = 11;
+    repeated TradeRouteState trade_routes = 12;
+    repeated CulturalProfile cultural_profiles = 13;
+    repeated ObjectState objects_in_world = 14;
 }
 
 message TickDelta {
@@ -51,4 +127,6 @@ message TickDelta {
     repeated uint64 died = 4;
     repeated ResourceState resource_changes = 5;
     uint32 entity_count = 6;
+    repeated ActiveWar war_changes = 7;
+    repeated SettlementState settlement_changes = 8;
 }

@@ -412,3 +412,386 @@ html, body, #root {
   background: rgba(0, 0, 0, 0.4);
   pointer-events: none;
 }
+
+/* ---- Sidebar Tabs ---- */
+.sidebar-tabs {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 4px 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 8px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tab-btn.active {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+}
+
+/* ---- Panel Section ---- */
+.panel-section {
+  padding: 8px 4px;
+}
+
+.panel-section h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 6px;
+}
+
+.panel-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ---- Tribe Table ---- */
+.tribe-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.tribe-table th {
+  text-align: left;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: normal;
+  padding: 2px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tribe-table td {
+  padding: 2px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ---- War List ---- */
+.war-list h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(239, 68, 68, 0.7);
+  margin: 8px 0 4px;
+}
+
+.war-item {
+  font-size: 11px;
+  color: rgba(239, 68, 68, 0.85);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 3px;
+  padding: 3px 6px;
+  margin-bottom: 3px;
+}
+
+/* ---- Timeline ---- */
+.timeline-list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-empty {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.timeline-event {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.timeline-event-war {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 2px solid rgba(239, 68, 68, 0.5);
+}
+
+.timeline-event-population {
+  background: rgba(250, 204, 21, 0.08);
+  border-left: 2px solid rgba(250, 204, 21, 0.5);
+}
+
+.timeline-event-extinction {
+  background: rgba(168, 85, 247, 0.08);
+  border-left: 2px solid rgba(168, 85, 247, 0.5);
+}
+
+.timeline-tick {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 10px;
+  min-width: 36px;
+  white-space: nowrap;
+}
+
+.timeline-desc {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.3;
+}
+
+/* ---- Species Range Map Canvas ---- */
+.range-map-canvas {
+  display: block;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 200px;
+  height: 200px;
+}
+
+/* ---- Memory Journal (updated Phase 3.3) ---- */
+.memory-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memory-journal-section {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.memory-journal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+}
+
+.memory-journal-section-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+.memory-journal-section-body {
+  padding: 4px 8px 6px;
+}
+
+.memory-no-data {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ---- Biography Panel ---- */
+.biography-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.bio-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bio-label {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.composite-badge {
+  color: #2dd4bf;
+  font-size: 11px;
+}
+
+.biography-timeline {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+}
+
+.bio-timeline-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 4px;
+}
+
+.bio-event {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.bio-event-tick {
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 36px;
+  font-size: 10px;
+}
+
+.bio-empty {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ---- Narration Panel ---- */
+.narration-log {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.narration-entry {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 3px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  line-height: 1.4;
+}
+
+.narration-empty {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* ---- Settlement Panel ---- */
+.panel-empty {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  font-style: italic;
+  padding: 4px 0;
+  line-height: 1.4;
+}
+
+.settlement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.settlement-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settlement-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.settlement-details {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.settlement-culture {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.culture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.culture-item {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 2px 0;
+}
+
+.signal-summary {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
+}
+
+.trade-route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.trade-route-item {
+  font-size: 11px;
+  color: rgba(251, 146, 60, 0.85);
+  background: rgba(251, 146, 60, 0.06);
+  border: 1px solid rgba(251, 146, 60, 0.12);
+  border-radius: 3px;
+  padding: 3px 6px;
+}
+
+.trade-resource {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.trade-volume {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Overlay Toggle Button ---- */
+.overlay-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.overlay-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.overlay-btn.active {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
+}

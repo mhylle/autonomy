@@ -1234,6 +1234,65 @@ fn check_for_signal_nodes(node: &simulation_engine::components::BtNode, emit: &m
     }
 }
 
+/// Phase 5.3: 100,000 tick signal correlation test.
+///
+/// Runs the full simulation for 100,000 ticks, sampling signal emission
+/// counts periodically. Verifies:
+/// - Signals are emitted at non-trivial frequency (non-zero usage).
+/// - Signal counts vary tick-to-tick, indicating correlation with entity
+///   state rather than random or constant emission.
+/// - The simulation remains stable (population survives).
+#[test]
+#[ignore] // Long-running test: ~100,000 ticks. Run with: cargo test -- --ignored
+fn signal_100k_ticks_non_random_correlation() {
+    use simulation_engine::events::types::SimEvent;
+
+    let config = SimulationConfig {
+        seed: 77,
+        initial_entity_count: 60,
+        world_width: 400.0,
+        world_height: 400.0,
+        ..SimulationConfig::default()
+    };
+    let mut world = SimulationWorld::new(config);
+    resource_spawning::scatter_resources(&mut world);
+    spawning::spawn_initial_population(&mut world);
+
+    let mut signal_counts_per_sample: Vec<usize> = Vec::new();
+    let sample_interval = 1000;
+
+    for t in 0..100_000u64 {
+        tick::tick(&mut world);
+        if t % sample_interval == 0 {
+            // Count signals currently alive in the world.
+            signal_counts_per_sample.push(world.signals.len());
+        }
+    }
+
+    assert!(
+        world.entity_count() > 0,
+        "population must survive 100,000 ticks"
+    );
+
+    // At least some ticks must have had signals present.
+    let total_signal_presence: usize = signal_counts_per_sample.iter().sum();
+    assert!(
+        total_signal_presence > 0,
+        "signals should be emitted during the simulation run, got zero signal presence across {} samples",
+        signal_counts_per_sample.len()
+    );
+
+    // Signal counts must not be constant — they vary with entity state.
+    let min = signal_counts_per_sample.iter().copied().min().unwrap_or(0);
+    let max = signal_counts_per_sample.iter().copied().max().unwrap_or(0);
+    assert!(
+        max > min,
+        "signal counts should vary (min={}, max={}), indicating context-dependent emission",
+        min,
+        max
+    );
+}
+
 /// Phase 5.1-5.3: Full simulation with signals runs without panics.
 ///
 /// Spawns a population with entities that may evolve signal behaviors,

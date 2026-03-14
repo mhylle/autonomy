@@ -8,12 +8,10 @@ import type { TerrainRenderer } from './TerrainRenderer';
  * The minimap is 200x200 and shows terrain background plus entity dots.
  */
 export class MinimapRenderer {
-  private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private size = 200;
 
   init(canvas: HTMLCanvasElement): void {
-    this.canvas = canvas;
     canvas.width = this.size;
     canvas.height = this.size;
     this.ctx = canvas.getContext('2d')!;
@@ -63,7 +61,6 @@ export class MinimapRenderer {
   }
 
   destroy(): void {
-    this.canvas = null;
     this.ctx = null;
   }
 }

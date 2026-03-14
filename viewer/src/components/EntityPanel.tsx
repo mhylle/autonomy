@@ -3,6 +3,7 @@ import { useHudStore } from '../net/state-store.ts';
 import { RelationshipView } from './RelationshipView.tsx';
 import { LineageView } from './LineageView.tsx';
 import { MemoryInspector } from './MemoryInspector.tsx';
+import { BiographyPanel } from './BiographyPanel.tsx';
 
 interface EntityPanelProps {
   entity: EntityState;
@@ -55,6 +56,9 @@ export function EntityPanel({ entity }: EntityPanelProps) {
 
         {/* Memory Inspector (Phase 3.3) */}
         <MemoryInspector />
+
+        {/* Biography Panel */}
+        <BiographyPanel entity={entity} />
 
         {/* Lineage Tree (Phase 3.5) */}
         <LineageView entity={entity} />
