@@ -426,7 +426,34 @@ The full tick pipeline with all subsystems (later eras add to this):
 19. network_sync       -- compute deltas, push to WS subscribers
 ```
 
-## 14. Design Principles
+## 14. Implementation Status (as of March 2026)
+
+**All 574 roadmap tasks complete.** The simulation engine and viewer are fully implemented across all 11 eras.
+
+| Component | Status |
+|-----------|--------|
+| Rust simulation engine | ✅ Complete — 776 unit tests, 22 integration tests |
+| TypeScript/React viewer | ✅ Complete — all overlays, panels, and charts implemented |
+| Protobuf protocol | ✅ Extended — streams entity, tribe, signal, war, settlement, trade, cultural data |
+| Documentation | ✅ Complete — roadmap, ADRs, solution description |
+
+Key systems implemented:
+- **Behavior trees** with 30+ node types, genetic operators (crossover, mutation, simplification)
+- **Memory system** with 9 memory kinds and eviction scoring
+- **Social system** with exponential-weighted relationship tracking
+- **Signal system** (emergent communication) with decay and LOD-aware perception
+- **Tribe/territory** detection from social graph clustering
+- **War system** with rolling kill history, WarDeclared/WarEnded events
+- **Composition** (multi-cellular organisms) with role specialization
+- **Cultural transmission** of behavior patterns and signal usage
+- **Civilization** layer: settlements, trade routes, cultural identity, hierarchy
+- **Narrative** system: significance scoring, story arc detection, biography compilation
+- **LOD/performance** system with rayon parallel perception and viewport streaming
+- **Snapshot/replay** with bincode + zstd compression
+- **3D coordinate support** with backward-compatible z-axis extension
+- **Chunk manager** stub for infinite world generation (Era 11)
+
+## 15. Design Principles
 
 1. **Environmental pressure, not hard-coded behavior**: Never code cooperation, fear, or culture. Create conditions where those behaviors have survival advantages. Let evolution find them.
 
