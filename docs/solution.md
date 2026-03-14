@@ -164,21 +164,64 @@ The composite entity uses the "leader" member's behavior tree for high-level dec
 
 Over evolutionary time, entities that compose effectively gain survival advantages. Specialization emerges: some entities evolve toward being good "sensor cells," others toward "muscle cells."
 
-### 3.8 Environment
+### 3.8 Communication and Signals
 
-The world is a 2D continuous space (expandable to 3D in future) with:
+Entities can emit signals into the world. Signals have a type (a u8 integer), position, radius, and decay rate. Crucially, signals have **no inherent meaning**. Signal meanings emerge through co-evolution of emitters and receivers:
 
-- **Terrain**: Noise-generated (Perlin/Simplex) biomes -- grassland, desert, water, forest. Affects movement speed and resource density.
-- **Resources**: Food nodes that deplete when consumed and regrow over time. Different types in different biomes.
-- **Climate**: Temperature and seasonal cycles. Long-term drift creates environmental pressure.
-- **Spatial index**: Grid-based spatial hash for O(n*k) proximity queries instead of O(n^2).
+- An entity that emits signal type 3 when finding food, combined with entities that respond to type 3 by approaching → both survive better → signal 3 becomes "food here"
+- Alarm calls, mating calls, territorial warnings -- all emerge from evolutionary pressure, not design
 
-### 3.9 Event Sourcing
+This is the foundation of proto-language. Isolated populations develop different signal conventions (cultural divergence).
+
+### 3.9 Tool Use and Construction
+
+Objects are entities with `MaterialProperties` -- continuous floats (hardness, sharpness, flexibility, density, flammability, nutritional value, durability, insulation). There are **no predefined tool types**. A "weapon" is any object with high sharpness and hardness. A "basket" is any object with high flexibility and low density.
+
+**Capability modifiers** are computed from material properties:
+```
+attack_bonus     = sharpness * hardness * sqrt(length) * sqrt(mass)
+defense_bonus    = hardness * width * density
+carry_bonus      = flexibility * width * (1.0 - density)
+harvest_bonus    = sharpness * hardness
+```
+
+**Blueprints** (recipes for creating objects) are encoded in the genome and evolve via GP, alongside behavior trees. They are also transmittable culturally:
+- **Genetic blueprints**: inherited, evolve slowly across generations
+- **Learned blueprints**: acquired by observation or teaching, spread culturally within a single generation, can be forgotten
+
+Cultural transmission is faster than genetic evolution. This creates a technology acceleration effect where one innovative entity can teach an entire tribe.
+
+**Structures** are objects placed in the world that affect the spatial index:
+- Hard materials in a line → wall (blocks movement)
+- Insulating materials forming enclosure → shelter (reduces environmental damage)
+- Planted resources → farm (increased food production)
+- Hard flat materials in a path → road (movement speed bonus)
+
+Structures are not special types. They emerge from the spatial arrangement of objects with specific material properties.
+
+**Agriculture**: Entities can plant resources (the `PlantedBy` component). Planted resources grow over time, grow faster when tended, and produce higher yield than wild resources. Farming knowledge spreads culturally.
+
+**Construction sites**: Complex structures require multi-tick, multi-entity building. A `ConstructionSite` component tracks required materials, deposited materials, work progress, and contributors. This naturally produces collaborative construction and division of labor.
+
+### 3.10 Environment
+
+The world is a 2D continuous space (expandable to 3D in later eras) with:
+
+- **Terrain**: Noise-generated (Perlin/Simplex) biomes -- grassland, desert, water, forest, mountain. Affects movement speed and resource density.
+- **Resources**: Food and material nodes that deplete when consumed and regrow over time. Different types in different biomes. Resources have material properties (wood is flexible and light, stone is hard and heavy).
+- **Climate**: Temperature and seasonal cycles. Long-term drift creates environmental pressure. Periodic events: droughts, resource scarcity.
+- **Spatial index**: Grid-based spatial hash for O(n*k) proximity queries instead of O(n^2). Separate structure grid for placed constructions.
+- **Structures**: Persistent constructions that modify the spatial index (block movement, provide shelter, grow food).
+
+### 3.11 Event Sourcing
 
 Every state change produces an immutable event appended to the event log:
 - EntitySpawned, EntityDied, EntityMoved, EntityAte, EntityAttacked
 - EntityReproduced, EntitiesComposed, EntityDecomposed
 - ResourceSpawned, ResourceDepleted, EnvironmentChanged
+- ObjectPickedUp, ObjectCrafted, ToolEquipped, StructurePlaced, StructureDestroyed
+- KnowledgeTransferred, ResourcePlanted, ResourceHarvested
+- ConstructionSiteStarted, ConstructionSiteWorked, ConstructionSiteCompleted
 
 Periodic snapshots (every N ticks) capture full world state. To replay to any tick: load nearest preceding snapshot, replay events forward. This enables:
 - Full history browsing
@@ -235,7 +278,90 @@ The engine and viewer communicate via WebSocket using Protocol Buffer messages:
 
 Delta streaming sends only changed entities each tick. At high zoom levels, only position + color is sent. At low zoom levels, full state including drives and memory.
 
-## 6. Evolution and Natural Selection
+## 6. Tribes, Territory, and Society
+
+### 6.1 Group Formation
+
+Entities that maintain positive social relationships above a threshold for sustained periods form **tribes** (TribeId component). Tribes are not designed -- they emerge from social dynamics. Tribe-level data includes member list, territory centroid, population, and collective resources.
+
+### 6.2 Territory
+
+Territory is defined by where tribe members spend most time. Territorial behavior emerges: entities prefer staying near their tribe and show increased aggression toward non-members near territory boundaries. Tribes can fight tribes -- group coordination where members preferentially attack the same target.
+
+### 6.3 Cultural Transmission
+
+Knowledge spreads beyond genetics through **observation and teaching**:
+- An entity observes a tribe member's successful action → adds to own memory
+- Learned behaviors (food locations, construction techniques, signal meanings) spread within a tribe faster than genetic evolution
+- Isolated groups develop different cultural practices (different signal meanings, different construction techniques)
+
+This creates **dual inheritance**: genetic evolution (slow, reliable) + cultural evolution (fast, lossy). The interaction produces a Baldwin effect where cultural innovations create selection pressure that eventually embeds them in genomes.
+
+## 7. Narrative Engine
+
+### 7.1 Event Significance
+
+Not all events are equally interesting. A significance function scores events:
+```
+significance = state_change_magnitude × rarity × protagonist_relevance × irreversibility × relationship_involvement
+```
+
+Events above a threshold enter the narrative buffer. The system auto-tracks "interesting" entities: longest-lived, most offspring, most kills, greatest territory, longest migration.
+
+### 7.2 Arc Detection
+
+Pattern matching on event sequences identifies narrative arcs:
+- **Rivalry**: Repeated combat between same pair
+- **Alliance**: Sustained cooperation
+- **Migration**: Group movement across biomes
+- **Extinction**: Species population → 0
+- **Rise**: Entity or tribe gaining territory/population
+- **Fall**: Losing territory/population
+
+Each arc has protagonists, events, and a tension curve. Multiple arcs tracked concurrently.
+
+### 7.3 LLM Narration
+
+An optional integration with Claude API or similar LLM. Feed narrative arc events to the LLM, receive prose descriptions. Configurable styles: documentary, epic, journal, clinical. Narration cache prevents re-narrating events.
+
+## 8. Civilization
+
+### 8.1 Settlements
+
+Emergent settlements: clusters of structures with persistent population are detected as settlements. Settlements have: population, structures, territory, resources, and a name derived from founding entities.
+
+### 8.2 Trade
+
+Different biomes produce different resources → comparative advantage. Entities carry surplus resources between settlements. Trade routes emerge as frequently traveled paths. Value estimation from memory: entities learn what's scarce elsewhere.
+
+### 8.3 Emergent Hierarchy
+
+Leadership is not assigned. The entity with highest social influence (most relationships, most respect) becomes the de facto leader. Specialization of labor: entities with different BTs fill different roles (farmer, builder, warrior, scout). Succession occurs naturally when leaders die.
+
+## 9. 3D World (Future Era)
+
+The simulation expands from 2D to 3D in 12 phases:
+- 3D coordinate system (Position3D, backward-compatible with 2D at Z=0)
+- Height-map terrain with elevation affecting movement, visibility, temperature
+- Underground caves (3D noise with threshold → cave volumes)
+- Three.js renderer replacing PixiJS (InstancedMesh for 100k+ entities)
+- 3D spatial index (grid hash or octree)
+- Water bodies: floating, swimming, underwater ecology
+- Aerial movement: flight as evolved genome trait, gliding, aerial predation
+- 3D construction: multi-story structures, bridges, cave dwellings
+- Day/night cycle, lighting, weather visualization
+
+## 10. Open World (Future Era)
+
+Infinite, procedurally generated world via chunks:
+- Chunk-based world: fixed-size squares, states: Active (full sim), Dormant (statistical), Unloaded (on disk)
+- World seed: single seed generates entire infinite world deterministically
+- Chunk activation: entity presence or viewer proximity
+- Long-distance migration: species spread, colonization of uninhabited chunks
+- Multi-civilization encounters: first contact events, communication barriers (different signal "languages"), conflict or cooperation
+- Seamless zoom: world overview → continent → settlement → individual entity
+
+## 11. Evolution and Natural Selection
 
 Evolution operates continuously through reproduction:
 
@@ -243,7 +369,7 @@ Evolution operates continuously through reproduction:
 2. If another compatible entity is adjacent → sexual reproduction (crossover of both genomes)
 3. Otherwise → asexual reproduction (clone with mutation)
 4. Offspring genome undergoes mutation (rates controlled by parent's genome)
-5. Mutation can alter: physical traits, drive sensitivities, memory capacity, memory eviction weights, behavior tree structure, behavior tree parameters, mutation rates themselves
+5. Mutation can alter: physical traits, drive sensitivities, memory capacity, memory eviction weights, behavior tree structure, behavior tree parameters, construction blueprints, mutation rates themselves
 
 **Selection pressure** comes from the environment:
 - Food scarcity rewards efficient foraging behavior
@@ -253,22 +379,54 @@ Evolution operates continuously through reproduction:
 
 **Species divergence** occurs naturally. Entities are clustered into species by genome similarity (hash of behavior tree structure + key trait values). When mutation accumulates enough difference, a new species is born. Population charts track species over time.
 
-## 7. Scalability Strategy
+## 12. Scalability Strategy
 
-**Phase 1-6** (up to ~10,000 entities):
+**Era 1-5** (up to ~10,000 entities):
 - Single-threaded simulation
 - Spatial hash for proximity queries
 - Delta streaming to viewers
 - In-memory event log with periodic snapshot to disk
 
-**Phase 7-8** (10,000-100,000+ entities):
-- Multi-threaded simulation: world partitioned into regions, each processed by a separate thread
-- LOD simulation: distant regions simulate at lower fidelity (skip perception, simplified behavior)
+**Era 8+** (10,000-100,000+ entities):
+- Multi-threaded simulation: world partitioned into regions, each processed by a separate thread (rayon)
+- LOD simulation: distant regions simulate at lower fidelity (skip perception, simplified BT)
 - Compressed event log storage
 - Multiple simultaneous viewer connections
-- Save/load full simulation state
+- Save/load full simulation state (bincode + zstd compression)
 
-## 8. Design Principles
+**Era 11** (infinite world):
+- Chunk-based world with Active/Dormant/Unloaded states
+- Statistical simulation for dormant chunks (population-level birth/death rates)
+- Disk-backed chunk storage
+- Chunk activation on entity migration or viewer pan
+
+## 13. Expanded Tick Pipeline
+
+The full tick pipeline with all subsystems (later eras add to this):
+
+```
+ 1. environment        -- resource regrowth, climate, structure decay, farm growth
+ 2. perception         -- spatial query: entities, resources, objects, structures, signals
+ 3. drives             -- hunger, fear, curiosity, social_need, aggression, reproductive, constructive
+ 4. decision           -- tick behavior trees → produce Action component
+ 5. movement           -- resolve movement, collision, structure blocking
+ 6. feeding            -- consume resources, harvest farms
+ 7. combat             -- resolve attacks (with tool modifiers), apply damage
+ 8. construction       -- resolve build/craft/tool actions
+ 9. inventory          -- pickup, drop, equip
+10. structure          -- place structures, update effects, register in spatial index
+11. knowledge          -- observation learning, teaching, blueprint transfer
+12. reproduction       -- genome crossover + mutation, spawn offspring
+13. composition        -- entity merging/splitting
+14. memory             -- record experiences, evict memories
+15. aging              -- age, metabolism cost, natural death, object decay
+16. cleanup            -- despawn dead entities, broken objects, decayed structures
+17. event_emit         -- flush events to log
+18. snapshot            -- periodic full-state snapshot
+19. network_sync       -- compute deltas, push to WS subscribers
+```
+
+## 14. Design Principles
 
 1. **Environmental pressure, not hard-coded behavior**: Never code cooperation, fear, or culture. Create conditions where those behaviors have survival advantages. Let evolution find them.
 
