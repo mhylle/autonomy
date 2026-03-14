@@ -1,3 +1,4 @@
+pub mod chunks;
 pub mod climate;
 pub mod resources;
 pub mod signals;

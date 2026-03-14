@@ -733,7 +733,7 @@ fn emergent_specialization_trait_divergence() {
         leader_genome.composition_affinity = 0.8;
 
         let leader = world.ecs.spawn((
-            simulation_engine::components::Position { x, y },
+            simulation_engine::components::Position { x, y, z: 0.0 },
             simulation_engine::components::Velocity::default(),
             simulation_engine::components::Energy {
                 current: 95.0, // above reproduction threshold
@@ -783,7 +783,7 @@ fn emergent_specialization_trait_divergence() {
             }
 
             let member = world.ecs.spawn((
-                simulation_engine::components::Position { x, y },
+                simulation_engine::components::Position { x, y, z: 0.0 },
                 simulation_engine::components::Velocity::default(),
                 simulation_engine::components::Energy {
                     current: 50.0,
@@ -919,7 +919,7 @@ fn composite_reproduction_produces_offspring() {
     // Create a composite with enough energy and members to reproduce.
     let leader_genome = Genome::default();
     let leader = world.ecs.spawn((
-        simulation_engine::components::Position { x: 50.0, y: 50.0 },
+        simulation_engine::components::Position { x: 50.0, y: 50.0, z: 0.0 },
         simulation_engine::components::Velocity::default(),
         simulation_engine::components::Energy {
             current: 90.0,
@@ -951,7 +951,7 @@ fn composite_reproduction_produces_offspring() {
     for role in &roles {
         let member_genome = Genome::default();
         let member = world.ecs.spawn((
-            simulation_engine::components::Position { x: 50.0, y: 50.0 },
+            simulation_engine::components::Position { x: 50.0, y: 50.0, z: 0.0 },
             simulation_engine::components::Velocity::default(),
             simulation_engine::components::Energy {
                 current: 50.0,
@@ -1064,7 +1064,7 @@ fn signal_system_end_to_end() {
     let emitter_bt = BtNode::EmitSignal { signal_type: 1 };
     let emitter_genome = Genome::default();
     let emitter = world.ecs.spawn((
-        Position { x: 50.0, y: 50.0 },
+        Position { x: 50.0, y: 50.0, z: 0.0 },
         Velocity::default(),
         Energy {
             current: 80.0,
@@ -1097,7 +1097,7 @@ fn signal_system_end_to_end() {
         ..Genome::default()
     };
     let receiver = world.ecs.spawn((
-        Position { x: 110.0, y: 50.0 },
+        Position { x: 110.0, y: 50.0, z: 0.0 },
         Velocity::default(),
         Energy {
             current: 80.0,

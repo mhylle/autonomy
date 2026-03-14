@@ -40,7 +40,7 @@ mod tests {
         let mut world = make_world();
 
         // Spawn an entity with a Position.
-        let pos = Position { x: 100.0, y: 100.0 };
+        let pos = Position { x: 100.0, y: 100.0, z: 0.0 };
         let entity = world.ecs.spawn((pos,));
 
         run(&mut world);

@@ -61,7 +61,7 @@ mod tests {
 
         // Spawn an entity with EmitSignal action.
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::EmitSignal { signal_type: 1 },
         ));
 
@@ -108,7 +108,7 @@ mod tests {
         let mut world = test_world();
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::Wander { speed: 1.0 },
         ));
 
@@ -122,11 +122,11 @@ mod tests {
         let mut world = test_world();
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::EmitSignal { signal_type: 1 },
         ));
         world.ecs.spawn((
-            Position { x: 100.0, y: 100.0 },
+            Position { x: 100.0, y: 100.0, z: 0.0 },
             Action::EmitSignal { signal_type: 2 },
         ));
 

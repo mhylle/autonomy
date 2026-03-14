@@ -198,14 +198,14 @@ mod tests {
         );
 
         let teacher = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             teacher_memory,
         ));
 
         // Learner nearby with empty memory.
         let learner = world.ecs.spawn((
-            Position { x: 15.0, y: 10.0 },
+            Position { x: 15.0, y: 10.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             Memory::new(20, EvictionWeights::default()),
         ));
@@ -265,14 +265,14 @@ mod tests {
         );
 
         world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             TribeId(Some(1)),
             teacher_memory,
         ));
 
         // Learner in tribe 2.
         let learner = world.ecs.spawn((
-            Position { x: 15.0, y: 10.0 },
+            Position { x: 15.0, y: 10.0, z: 0.0 },
             TribeId(Some(2)),
             Memory::new(20, EvictionWeights::default()),
         ));
@@ -312,13 +312,13 @@ mod tests {
         );
 
         let teacher = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             teacher_memory,
         ));
 
         let learner = world.ecs.spawn((
-            Position { x: 15.0, y: 10.0 },
+            Position { x: 15.0, y: 10.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             Memory::new(20, EvictionWeights::default()),
         ));
@@ -364,14 +364,14 @@ mod tests {
         );
 
         let teacher = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             teacher_memory,
         ));
 
         // Learner far away.
         let learner = world.ecs.spawn((
-            Position { x: 500.0, y: 500.0 },
+            Position { x: 500.0, y: 500.0, z: 0.0 },
             TribeId(Some(tribe_id)),
             Memory::new(20, EvictionWeights::default()),
         ));

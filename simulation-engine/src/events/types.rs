@@ -73,6 +73,20 @@ pub enum SimEvent {
         x: f64,
         y: f64,
     },
+    /// Two tribes have accumulated enough cross-tribe kills to be considered at war.
+    WarDeclared {
+        tribe_a_id: u64,
+        tribe_b_id: u64,
+        tick: u64,
+    },
+    /// A war between two tribes has ended due to prolonged peace.
+    WarEnded {
+        tribe_a_id: u64,
+        tribe_b_id: u64,
+        started_tick: u64,
+        ended_tick: u64,
+        duration: u64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -224,6 +238,26 @@ mod tests {
             released_member_ids: vec![2, 3],
             x: 50.0,
             y: 60.0,
+        });
+    }
+
+    #[test]
+    fn roundtrip_war_declared() {
+        roundtrip(&SimEvent::WarDeclared {
+            tribe_a_id: 1,
+            tribe_b_id: 2,
+            tick: 500,
+        });
+    }
+
+    #[test]
+    fn roundtrip_war_ended() {
+        roundtrip(&SimEvent::WarEnded {
+            tribe_a_id: 1,
+            tribe_b_id: 2,
+            started_tick: 500,
+            ended_tick: 750,
+            duration: 250,
         });
     }
 }

@@ -50,6 +50,16 @@ impl TerrainType {
 /// Cell size in simulation units. Each cell is a square of this side length.
 pub const CELL_SIZE: f64 = 10.0;
 
+/// Maximum elevation value (mountains).
+pub const MAX_ELEVATION: f64 = 100.0;
+
+/// Slope penalty factor: each unit of elevation gain reduces movement speed
+/// by this fraction (clamped so speed never goes below 10% of base).
+const SLOPE_SPEED_PENALTY: f64 = 0.05;
+
+/// Minimum movement speed multiplier from slope (prevents complete stop).
+const MIN_SLOPE_MULTIPLIER: f64 = 0.1;
+
 /// A grid of terrain cells covering the simulation world.
 ///
 /// The grid is generated once from Perlin noise using the world seed and
@@ -57,6 +67,14 @@ pub const CELL_SIZE: f64 = 10.0;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerrainGrid {
     cells: Vec<TerrainType>,
+    /// Per-cell elevation values (0.0 = sea level, MAX_ELEVATION = peak).
+    /// Empty when 3D is disabled.
+    #[serde(default)]
+    elevation: Vec<f64>,
+    /// Per-cell underground/cave flag. True = cave exists beneath this cell.
+    /// Empty when 3D is disabled.
+    #[serde(default)]
+    caves: Vec<bool>,
     pub cols: usize,
     pub rows: usize,
     pub cell_size: f64,
@@ -69,8 +87,19 @@ impl TerrainGrid {
     /// deterministic for replay. The grid covers `world_width` x
     /// `world_height` simulation units.
     pub fn generate(world_width: f64, world_height: f64, seed: u64) -> Self {
+        Self::generate_with_3d(world_width, world_height, seed, false)
+    }
+
+    /// Generate a terrain grid, optionally including 3D elevation and caves.
+    pub fn generate_with_3d(
+        world_width: f64,
+        world_height: f64,
+        seed: u64,
+        enable_3d: bool,
+    ) -> Self {
         let cols = (world_width / CELL_SIZE).ceil() as usize;
         let rows = (world_height / CELL_SIZE).ceil() as usize;
+        let total = cols * rows;
 
         // Perlin::new takes a u32 seed.
         let perlin = Perlin::new(seed as u32);
@@ -78,10 +107,14 @@ impl TerrainGrid {
         // Use a second noise layer for moisture (determines forest vs desert).
         let moisture_perlin = Perlin::new(seed.wrapping_add(1000) as u32);
 
-        let mut cells = Vec::with_capacity(cols * rows);
+        let mut cells = Vec::with_capacity(total);
 
         // Scale factor controls feature size. Larger = bigger biomes.
         let scale = 0.03;
+
+        // Raw elevation values (Perlin output, roughly -1..1) used for both
+        // terrain classification and height map.
+        let mut raw_elevations = Vec::with_capacity(total);
 
         for row in 0..rows {
             for col in 0..cols {
@@ -91,13 +124,47 @@ impl TerrainGrid {
                 let elevation = perlin.get([nx, ny]);
                 let moisture = moisture_perlin.get([nx + 100.0, ny + 100.0]);
 
+                raw_elevations.push(elevation);
                 let terrain = classify_terrain(elevation, moisture);
                 cells.push(terrain);
             }
         }
 
+        // Build elevation and cave layers when 3D is enabled.
+        let (elevation, caves) = if enable_3d {
+            let elevation: Vec<f64> = raw_elevations
+                .iter()
+                .map(|&e| raw_elevation_to_height(e))
+                .collect();
+
+            // Cave generation: use a separate 3D-seeded Perlin noise.
+            // A cell is a cave when the noise value exceeds a threshold AND
+            // the cell is above sea level (not water).
+            let cave_perlin = Perlin::new(seed.wrapping_add(5000) as u32);
+            let cave_scale = 0.06;
+            let cave_threshold = 0.3;
+
+            let caves: Vec<bool> = (0..total)
+                .map(|i| {
+                    let r = i / cols;
+                    let c = i % cols;
+                    let nx = c as f64 * cave_scale;
+                    let ny = r as f64 * cave_scale;
+                    let nz = elevation[i] * 0.01; // tie cave likelihood to depth
+                    let cave_noise = cave_perlin.get([nx, ny, nz]);
+                    cave_noise > cave_threshold && cells[i] != TerrainType::Water
+                })
+                .collect();
+
+            (elevation, caves)
+        } else {
+            (Vec::new(), Vec::new())
+        };
+
         Self {
             cells,
+            elevation,
+            caves,
             cols,
             rows,
             cell_size: CELL_SIZE,
@@ -155,6 +222,79 @@ impl TerrainGrid {
     pub fn count_terrain(&self, terrain: TerrainType) -> usize {
         self.cells.iter().filter(|&&t| t == terrain).count()
     }
+
+    // --- 3D elevation API ---
+
+    /// Whether this grid has elevation data.
+    pub fn has_elevation(&self) -> bool {
+        !self.elevation.is_empty()
+    }
+
+    /// Get the elevation at grid coordinates. Returns 0.0 if elevation is
+    /// not generated (2D mode).
+    pub fn elevation_at_cell(&self, col: usize, row: usize) -> f64 {
+        if self.elevation.is_empty() {
+            return 0.0;
+        }
+        let col = col.min(self.cols.saturating_sub(1));
+        let row = row.min(self.rows.saturating_sub(1));
+        self.elevation[row * self.cols + col]
+    }
+
+    /// Get the elevation at a world-space position. Returns 0.0 in 2D mode.
+    pub fn elevation_at(&self, x: f64, y: f64) -> f64 {
+        let (col, row) = self.world_to_cell(x, y);
+        self.elevation_at_cell(col, row)
+    }
+
+    /// Compute the slope-based movement multiplier between two positions.
+    ///
+    /// Going uphill reduces speed; downhill is unpenalised. Returns 1.0
+    /// when elevation data is absent (2D mode).
+    pub fn slope_multiplier(&self, from_x: f64, from_y: f64, to_x: f64, to_y: f64) -> f64 {
+        if self.elevation.is_empty() {
+            return 1.0;
+        }
+        let from_elev = self.elevation_at(from_x, from_y);
+        let to_elev = self.elevation_at(to_x, to_y);
+        let gain = (to_elev - from_elev).max(0.0);
+        (1.0 - gain * SLOPE_SPEED_PENALTY).max(MIN_SLOPE_MULTIPLIER)
+    }
+
+    // --- Cave API ---
+
+    /// Whether this grid has cave data.
+    pub fn has_caves(&self) -> bool {
+        !self.caves.is_empty()
+    }
+
+    /// Whether the cell at grid coordinates is a cave. Returns false in 2D mode.
+    pub fn is_cave_at_cell(&self, col: usize, row: usize) -> bool {
+        if self.caves.is_empty() {
+            return false;
+        }
+        let col = col.min(self.cols.saturating_sub(1));
+        let row = row.min(self.rows.saturating_sub(1));
+        self.caves[row * self.cols + col]
+    }
+
+    /// Whether the position is above a cave. Returns false in 2D mode.
+    pub fn is_cave_at(&self, x: f64, y: f64) -> bool {
+        let (col, row) = self.world_to_cell(x, y);
+        self.is_cave_at_cell(col, row)
+    }
+
+    /// Count cells that are caves.
+    pub fn count_caves(&self) -> usize {
+        self.caves.iter().filter(|&&c| c).count()
+    }
+}
+
+/// Map raw Perlin noise elevation (roughly -1..1) to a height value in
+/// [0, MAX_ELEVATION]. Water cells will have low elevation; mountains high.
+fn raw_elevation_to_height(raw: f64) -> f64 {
+    // Remap -1..1 to 0..MAX_ELEVATION
+    ((raw + 1.0) / 2.0).clamp(0.0, 1.0) * MAX_ELEVATION
 }
 
 /// Classify a cell into a terrain type based on elevation and moisture.
@@ -165,7 +305,7 @@ impl TerrainGrid {
 /// - Mid elevation + high moisture -> Forest
 /// - Mid elevation + low moisture -> Desert
 /// - Otherwise -> Grassland
-fn classify_terrain(elevation: f64, moisture: f64) -> TerrainType {
+pub fn classify_terrain(elevation: f64, moisture: f64) -> TerrainType {
     if elevation < -0.3 {
         TerrainType::Water
     } else if elevation > 0.5 {
@@ -368,5 +508,158 @@ mod tests {
             grid.resource_density_at(50.0, 50.0),
             terrain.resource_density_multiplier()
         );
+    }
+
+    // --- 3D elevation tests ---
+
+    #[test]
+    fn generate_2d_has_no_elevation() {
+        let grid = TerrainGrid::generate(100.0, 100.0, 42);
+        assert!(!grid.has_elevation());
+        assert_eq!(grid.elevation_at(50.0, 50.0), 0.0);
+    }
+
+    #[test]
+    fn generate_3d_has_elevation() {
+        let grid = TerrainGrid::generate_with_3d(100.0, 100.0, 42, true);
+        assert!(grid.has_elevation());
+        for row in 0..grid.rows {
+            for col in 0..grid.cols {
+                let elev = grid.elevation_at_cell(col, row);
+                assert!(
+                    elev >= 0.0 && elev <= MAX_ELEVATION,
+                    "elevation {} out of bounds at ({}, {})",
+                    elev,
+                    col,
+                    row
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn elevation_is_deterministic() {
+        let grid1 = TerrainGrid::generate_with_3d(200.0, 200.0, 42, true);
+        let grid2 = TerrainGrid::generate_with_3d(200.0, 200.0, 42, true);
+        for row in 0..grid1.rows {
+            for col in 0..grid1.cols {
+                assert_eq!(
+                    grid1.elevation_at_cell(col, row),
+                    grid2.elevation_at_cell(col, row),
+                    "elevation mismatch at ({}, {})",
+                    col,
+                    row
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn slope_multiplier_flat_is_one() {
+        let grid = TerrainGrid::generate(100.0, 100.0, 42);
+        assert_eq!(grid.slope_multiplier(10.0, 10.0, 20.0, 20.0), 1.0);
+    }
+
+    #[test]
+    fn slope_multiplier_uphill_reduces_speed() {
+        let grid = TerrainGrid::generate_with_3d(500.0, 500.0, 42, true);
+        for row in 0..grid.rows.saturating_sub(1) {
+            let elev_here = grid.elevation_at_cell(0, row);
+            let elev_next = grid.elevation_at_cell(0, row + 1);
+            if elev_next > elev_here + 1.0 {
+                let from_x = 1.0;
+                let from_y = row as f64 * grid.cell_size + 1.0;
+                let to_x = 1.0;
+                let to_y = (row + 1) as f64 * grid.cell_size + 1.0;
+                let mult = grid.slope_multiplier(from_x, from_y, to_x, to_y);
+                assert!(
+                    mult < 1.0,
+                    "uphill movement should reduce speed, got multiplier {}",
+                    mult
+                );
+                return;
+            }
+        }
+    }
+
+    #[test]
+    fn slope_multiplier_downhill_is_one() {
+        let grid = TerrainGrid::generate_with_3d(500.0, 500.0, 42, true);
+        for row in 0..grid.rows.saturating_sub(1) {
+            let elev_here = grid.elevation_at_cell(0, row);
+            let elev_next = grid.elevation_at_cell(0, row + 1);
+            if elev_next < elev_here - 1.0 {
+                let from_x = 1.0;
+                let from_y = row as f64 * grid.cell_size + 1.0;
+                let to_x = 1.0;
+                let to_y = (row + 1) as f64 * grid.cell_size + 1.0;
+                let mult = grid.slope_multiplier(from_x, from_y, to_x, to_y);
+                assert_eq!(mult, 1.0, "downhill movement should not be penalised");
+                return;
+            }
+        }
+    }
+
+    // --- Cave tests ---
+
+    #[test]
+    fn generate_2d_has_no_caves() {
+        let grid = TerrainGrid::generate(100.0, 100.0, 42);
+        assert!(!grid.has_caves());
+        assert!(!grid.is_cave_at(50.0, 50.0));
+    }
+
+    #[test]
+    fn generate_3d_has_caves() {
+        let grid = TerrainGrid::generate_with_3d(500.0, 500.0, 42, true);
+        assert!(grid.has_caves());
+        let cave_count = grid.count_caves();
+        assert!(
+            cave_count > 0,
+            "expected at least some caves in 500x500 world"
+        );
+    }
+
+    #[test]
+    fn caves_not_in_water() {
+        let grid = TerrainGrid::generate_with_3d(500.0, 500.0, 42, true);
+        for row in 0..grid.rows {
+            for col in 0..grid.cols {
+                if grid.get(col, row) == TerrainType::Water {
+                    assert!(
+                        !grid.is_cave_at_cell(col, row),
+                        "cave should not exist in water at ({}, {})",
+                        col,
+                        row
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn terrain_grid_deserialize_without_3d_fields() {
+        let grid_2d = TerrainGrid::generate(100.0, 100.0, 42);
+        let json = serde_json::to_string(&grid_2d).unwrap();
+        let restored: TerrainGrid = serde_json::from_str(&json).unwrap();
+        assert!(!restored.has_elevation());
+        assert!(!restored.has_caves());
+        assert_eq!(restored.cols, grid_2d.cols);
+        assert_eq!(restored.rows, grid_2d.rows);
+    }
+
+    #[test]
+    fn generate_with_3d_false_same_as_generate() {
+        let grid_a = TerrainGrid::generate(200.0, 200.0, 42);
+        let grid_b = TerrainGrid::generate_with_3d(200.0, 200.0, 42, false);
+        assert_eq!(grid_a.cols, grid_b.cols);
+        assert_eq!(grid_a.rows, grid_b.rows);
+        assert!(!grid_a.has_elevation());
+        assert!(!grid_b.has_elevation());
+        for row in 0..grid_a.rows {
+            for col in 0..grid_a.cols {
+                assert_eq!(grid_a.get(col, row), grid_b.get(col, row));
+            }
+        }
     }
 }

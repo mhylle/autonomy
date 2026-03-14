@@ -182,7 +182,7 @@ mod tests {
             ..Genome::default()
         };
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,
@@ -217,7 +217,7 @@ mod tests {
             ..Genome::default()
         };
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,
@@ -512,7 +512,7 @@ mod tests {
             ..Genome::default()
         };
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,

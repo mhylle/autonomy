@@ -327,7 +327,7 @@ mod tests {
             ..Genome::default()
         };
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 100.0,
@@ -577,7 +577,7 @@ mod tests {
         };
         different_genome.species_id = crate::components::genome::compute_species_id(&different_genome);
         let stranger = world.ecs.spawn((
-            Position { x: 60.0, y: 50.0 },
+            Position { x: 60.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 200.0,

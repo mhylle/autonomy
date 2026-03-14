@@ -71,6 +71,7 @@ pub fn tick_with_perf(
     run_system!("movement", systems::movement::run(world));
     run_system!("feeding", systems::feeding::run(world));
     run_system!("combat", systems::combat::run(world));
+    run_system!("war", systems::war::run(world));
     run_system!("reproduction", systems::reproduction::run(world));
     run_system!("composition", systems::composition::run(world));
     run_system!(

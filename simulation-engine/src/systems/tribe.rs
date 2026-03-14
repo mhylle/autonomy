@@ -409,7 +409,7 @@ mod tests {
         social: Social,
     ) -> hecs::Entity {
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             social,
             TribeId::default(),
         ))
@@ -554,22 +554,22 @@ mod tests {
         let mut world = test_world();
 
         let a = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(42)),
         ));
         let b = world.ecs.spawn((
-            Position { x: 20.0, y: 20.0 },
+            Position { x: 20.0, y: 20.0, z: 0.0 },
             Social::default(),
             TribeId(Some(42)),
         ));
         let c = world.ecs.spawn((
-            Position { x: 30.0, y: 30.0 },
+            Position { x: 30.0, y: 30.0, z: 0.0 },
             Social::default(),
             TribeId(Some(99)),
         ));
         let d = world.ecs.spawn((
-            Position { x: 40.0, y: 40.0 },
+            Position { x: 40.0, y: 40.0, z: 0.0 },
             Social::default(),
             TribeId::default(),
         ));
@@ -591,23 +591,23 @@ mod tests {
 
         let tribe_id = 1u64;
         let a = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));
         let b = world.ecs.spawn((
-            Position { x: 15.0, y: 10.0 },
+            Position { x: 15.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));
         let c = world.ecs.spawn((
-            Position { x: 12.0, y: 12.0 },
+            Position { x: 12.0, y: 12.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));
         // Far away tribemate.
         let d = world.ecs.spawn((
-            Position { x: 200.0, y: 200.0 },
+            Position { x: 200.0, y: 200.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));
@@ -635,17 +635,17 @@ mod tests {
         let tribe_b = 2u64;
 
         let a = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_a)),
         ));
         let b = world.ecs.spawn((
-            Position { x: 15.0, y: 10.0 },
+            Position { x: 15.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_b)),
         ));
         let c = world.ecs.spawn((
-            Position { x: 12.0, y: 12.0 },
+            Position { x: 12.0, y: 12.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_b)),
         ));
@@ -676,12 +676,12 @@ mod tests {
         world.next_tribe_id += 1;
 
         let a = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));
         let b = world.ecs.spawn((
-            Position { x: 30.0, y: 30.0 },
+            Position { x: 30.0, y: 30.0, z: 0.0 },
             Social::default(),
             TribeId(Some(tribe_id)),
         ));

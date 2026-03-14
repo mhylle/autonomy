@@ -115,7 +115,7 @@ mod tests {
     fn move_to_sets_velocity_toward_target() {
         let mut world = test_world();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Action::MoveTo {
                 x: 80.0,
@@ -136,7 +136,7 @@ mod tests {
     fn wander_sets_random_velocity() {
         let mut world = test_world();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Action::Wander { speed: 1.5 },
         ));
@@ -157,8 +157,8 @@ mod tests {
     fn rest_sets_zero_velocity() {
         let mut world = test_world();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
-            Velocity { dx: 5.0, dy: 5.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
+            Velocity { dx: 5.0, dy: 5.0, dz: 0.0 },
             Action::Rest,
         ));
 
@@ -174,8 +174,8 @@ mod tests {
     fn eat_sets_zero_velocity() {
         let mut world = test_world();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
-            Velocity { dx: 5.0, dy: 5.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
+            Velocity { dx: 5.0, dy: 5.0, dz: 0.0 },
             Action::Eat,
         ));
 
@@ -204,7 +204,7 @@ mod tests {
     fn flee_from_sets_velocity_away_from_target() {
         let mut world = test_world();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Action::FleeFrom {
                 x: 80.0,
@@ -227,12 +227,12 @@ mod tests {
         let mut world1 = test_world();
         let mut world2 = test_world();
         world1.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Action::Wander { speed: 1.5 },
         ));
         world2.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Action::Wander { speed: 1.5 },
         ));

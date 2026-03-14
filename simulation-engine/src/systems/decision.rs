@@ -317,7 +317,7 @@ mod tests {
             ..Drives::default()
         };
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,
@@ -417,7 +417,7 @@ mod tests {
             ..Drives::default()
         };
         let e = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 100.0,
@@ -467,7 +467,7 @@ mod tests {
         social.record_interaction(888, -1.0, None);
 
         let e = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 100.0,
@@ -538,7 +538,7 @@ mod tests {
             ..Drives::default()
         };
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,

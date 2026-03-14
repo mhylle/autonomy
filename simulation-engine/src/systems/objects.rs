@@ -330,7 +330,7 @@ mod tests {
         world.objects.push(make_ground_object(1, 52.0, 50.0, 100.0));
 
         let entity = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::PickUp { object_id: 1 },
             Inventory::new(5),
         ));
@@ -350,7 +350,7 @@ mod tests {
         let mut full_inv = Inventory::new(1);
         full_inv.add(99);
         let entity = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::PickUp { object_id: 1 },
             full_inv,
         ));
@@ -368,7 +368,7 @@ mod tests {
         world.objects.push(make_ground_object(1, 200.0, 200.0, 100.0));
 
         let entity = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::PickUp { object_id: 1 },
             Inventory::new(5),
         ));
@@ -391,7 +391,7 @@ mod tests {
         let mut inv = Inventory::new(5);
         inv.add(1);
         let entity = world.ecs.spawn((
-            Position { x: 75.0, y: 80.0 },
+            Position { x: 75.0, y: 80.0, z: 0.0 },
             Action::Drop { object_id: 1 },
             inv,
         ));
@@ -423,7 +423,7 @@ mod tests {
             ..Genome::default()
         };
         let entity = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 100.0,
@@ -450,7 +450,7 @@ mod tests {
         let mut world = test_world();
         let genome = Genome::default(); // energy_cost = 20.0
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 10.0, // less than 20.0 energy cost
                 max: 100.0,
@@ -578,7 +578,7 @@ mod tests {
         world.objects.push(make_ground_object(2, 60.0, 60.0, 0.001));
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Action::PickUp { object_id: 1 },
             Inventory::new(5),
         ));

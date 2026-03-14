@@ -475,7 +475,7 @@ mod tests {
         let mut genome = Genome::default();
         genome.composition_affinity = affinity;
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 80.0,
@@ -635,7 +635,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 80.0,
@@ -666,7 +666,7 @@ mod tests {
         member_genome.sensor_range = 5.0;
         member_genome.size = 1.0;
         let member = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy::default(),
             Health::default(),
@@ -698,7 +698,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 10.0, // 10% of max -> below DECOMPOSITION_ENERGY_THRESHOLD (15%)
@@ -724,7 +724,7 @@ mod tests {
         let leader_id = leader.to_bits().get();
 
         let member = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy::default(),
             Health::default(),
@@ -757,7 +757,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 25.0, // 25% -> between PARTIAL (30%) and FULL (15%) thresholds
@@ -784,7 +784,7 @@ mod tests {
 
         // Member 1: strong (high energy)
         let member1 = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 80.0,
@@ -800,7 +800,7 @@ mod tests {
 
         // Member 2: weak (low energy)
         let member2 = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 10.0,
@@ -872,7 +872,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 5.0,
@@ -898,7 +898,7 @@ mod tests {
         let leader_id = leader.to_bits().get();
 
         let member = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy::default(),
             Genome::default(),
@@ -929,7 +929,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 80.0, // healthy
@@ -955,7 +955,7 @@ mod tests {
         let leader_id = leader.to_bits().get();
 
         let member = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy::default(),
             Genome::default(),
@@ -1016,7 +1016,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 80.0,
@@ -1046,7 +1046,7 @@ mod tests {
         for i in 0..MAX_COMPOSITE_SIZE {
             let member_genome = Genome::default();
             let member = world.ecs.spawn((
-                Position { x: 50.0, y: 50.0 },
+                Position { x: 50.0, y: 50.0, z: 0.0 },
                 Velocity::default(),
                 Energy::default(),
                 member_genome,
@@ -1076,7 +1076,7 @@ mod tests {
         let mut world = test_world();
         let leader_genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 50.0, // 50% of max
@@ -1091,7 +1091,7 @@ mod tests {
         let leader_id = leader.to_bits().get();
 
         let member = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: 100.0, // starts at full

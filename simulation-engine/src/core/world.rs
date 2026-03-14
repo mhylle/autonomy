@@ -10,6 +10,7 @@ use crate::environment::resources::Resource;
 use crate::environment::signals::Signal;
 use crate::environment::spatial_index::SpatialIndex;
 use crate::environment::structures::{ConstructionSite, Farm, Storage, Structure};
+use crate::environment::chunks::ChunkManager;
 use crate::environment::terrain::TerrainGrid;
 use crate::events::EventLog;
 use crate::narrative::NarrativeTracker;
@@ -66,6 +67,15 @@ pub struct SimulationWorld {
     pub narrative_tracker: NarrativeTracker,
     /// Era 9: Civilization analysis state (settlements, trade, hierarchy, culture).
     pub civilization: CivilizationState,
+    /// Era 11: Optional chunk manager for infinite world generation.
+    /// `None` when `config.enable_chunks` is false (default).
+    pub chunk_manager: Option<ChunkManager>,
+    /// Active wars between tribe pairs: (tribe_a_id, tribe_b_id) → tick declared.
+    /// Keys are normalized so tribe_a_id <= tribe_b_id.
+    pub active_wars: std::collections::HashMap<(u64, u64), u64>,
+    /// Per-pair history of inter-tribe kill ticks, for detecting war onset.
+    /// Pruned each tick to the last WAR_KILL_WINDOW ticks.
+    pub war_kill_history: std::collections::HashMap<(u64, u64), std::collections::VecDeque<u64>>,
 }
 
 impl SimulationWorld {
@@ -78,6 +88,11 @@ impl SimulationWorld {
             config.world_height,
             config.seed,
         );
+        let chunk_manager = if config.enable_chunks {
+            Some(ChunkManager::new(config.chunk_size, config.seed))
+        } else {
+            None
+        };
         Self {
             ecs: World::new(),
             config,
@@ -105,6 +120,9 @@ impl SimulationWorld {
             next_structure_id: 1,
             narrative_tracker: NarrativeTracker::new(),
             civilization: CivilizationState::new(),
+            chunk_manager,
+            active_wars: std::collections::HashMap::new(),
+            war_kill_history: std::collections::HashMap::new(),
         }
     }
 

@@ -129,6 +129,7 @@ pub fn run(world: &mut SimulationWorld) {
             Position {
                 x: offspring_x,
                 y: offspring_y,
+                z: 0.0,
             },
             Velocity::default(),
             Energy {
@@ -187,6 +188,7 @@ pub fn run(world: &mut SimulationWorld) {
                 Position {
                     x: offspring_x,
                     y: offspring_y,
+                    z: 0.0,
                 },
                 Velocity::default(),
                 Energy {
@@ -467,7 +469,7 @@ mod tests {
     ) -> hecs::Entity {
         let genome = Genome::default();
         let leader = world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: energy,
@@ -513,7 +515,7 @@ mod tests {
         for i in 0..member_count {
             let member_genome = Genome::default();
             let member = world.ecs.spawn((
-                Position { x: 50.0, y: 50.0 },
+                Position { x: 50.0, y: 50.0, z: 0.0 },
                 Velocity::default(),
                 Energy {
                     current: 50.0,

@@ -1,5 +1,6 @@
 pub mod aging;
 pub mod agriculture;
+pub mod chunk_manager;
 pub mod cleanup;
 pub mod combat;
 pub mod composite_reproduction;
@@ -19,4 +20,5 @@ pub mod settlement;
 pub mod signals;
 pub mod spatial_rebuild;
 pub mod tribe;
+pub mod war;
 pub mod wander;

@@ -3,6 +3,9 @@
 /// Divides the world into cells of `cell_size` width/height. Each cell
 /// tracks which entity IDs and resource indices are present, enabling
 /// O(n*k) "find neighbors within radius" queries instead of O(n^2).
+///
+/// Entities store an optional z coordinate for 3D queries. The 2D grid
+/// partitions on (x, y) only; z is checked during the distance filter.
 #[derive(Debug, Clone)]
 pub struct SpatialIndex {
     cell_size: f64,
@@ -10,10 +13,10 @@ pub struct SpatialIndex {
     rows: usize,
     width: f64,
     height: f64,
-    /// cell -> [(entity_id_bits, x, y)]
-    entity_cells: Vec<Vec<(u64, f64, f64)>>,
-    /// cell -> [(resource_index, x, y)]
-    resource_cells: Vec<Vec<(usize, f64, f64)>>,
+    /// cell -> [(entity_id_bits, x, y, z)]
+    entity_cells: Vec<Vec<(u64, f64, f64, f64)>>,
+    /// cell -> [(resource_index, x, y, z)]
+    resource_cells: Vec<Vec<(usize, f64, f64, f64)>>,
 }
 
 impl SpatialIndex {
@@ -56,24 +59,35 @@ impl SpatialIndex {
         }
     }
 
-    /// Insert an entity into the spatial index.
+    /// Insert an entity into the spatial index (2D, z=0).
     ///
     /// We store `entity_id_bits` (from `hecs::Entity::to_bits()`) rather
     /// than `hecs::Entity` directly so the spatial index stays decoupled
     /// from the ECS crate.
     pub fn insert_entity(&mut self, entity_id_bits: u64, x: f64, y: f64) {
+        self.insert_entity_3d(entity_id_bits, x, y, 0.0);
+    }
+
+    /// Insert an entity with a z coordinate.
+    pub fn insert_entity_3d(&mut self, entity_id_bits: u64, x: f64, y: f64, z: f64) {
         let idx = self.cell_index(x, y);
-        self.entity_cells[idx].push((entity_id_bits, x, y));
+        self.entity_cells[idx].push((entity_id_bits, x, y, z));
     }
 
     /// Insert a resource into the spatial index by its index in the
-    /// resource list.
+    /// resource list (2D, z=0).
     pub fn insert_resource(&mut self, resource_index: usize, x: f64, y: f64) {
+        self.insert_resource_3d(resource_index, x, y, 0.0);
+    }
+
+    /// Insert a resource with a z coordinate.
+    pub fn insert_resource_3d(&mut self, resource_index: usize, x: f64, y: f64, z: f64) {
         let idx = self.cell_index(x, y);
-        self.resource_cells[idx].push((resource_index, x, y));
+        self.resource_cells[idx].push((resource_index, x, y, z));
     }
 
     /// Find all entities within `radius` of the point `(x, y)`.
+    /// Uses 2D distance (ignores z).
     ///
     /// Returns a vec of `(entity_id_bits, entity_x, entity_y)`.
     pub fn query_entities_in_radius(&self, x: f64, y: f64, radius: f64) -> Vec<(u64, f64, f64)> {
@@ -81,7 +95,7 @@ impl SpatialIndex {
         let mut results = Vec::new();
 
         for cell_idx in self.cells_in_radius(x, y, radius) {
-            for &(id, ex, ey) in &self.entity_cells[cell_idx] {
+            for &(id, ex, ey, _ez) in &self.entity_cells[cell_idx] {
                 let dx = ex - x;
                 let dy = ey - y;
                 if dx * dx + dy * dy <= r_sq {
@@ -93,7 +107,37 @@ impl SpatialIndex {
         results
     }
 
+    /// Find all entities within a 3D sphere of `radius` around `(x, y, z)`.
+    ///
+    /// Returns a vec of `(entity_id_bits, entity_x, entity_y, entity_z)`.
+    pub fn query_entities_in_radius_3d(
+        &self,
+        x: f64,
+        y: f64,
+        z: f64,
+        radius: f64,
+    ) -> Vec<(u64, f64, f64, f64)> {
+        let r_sq = radius * radius;
+        let mut results = Vec::new();
+
+        // The 2D grid cells still partition by (x, y); we check z in the
+        // inner loop.
+        for cell_idx in self.cells_in_radius(x, y, radius) {
+            for &(id, ex, ey, ez) in &self.entity_cells[cell_idx] {
+                let dx = ex - x;
+                let dy = ey - y;
+                let dz = ez - z;
+                if dx * dx + dy * dy + dz * dz <= r_sq {
+                    results.push((id, ex, ey, ez));
+                }
+            }
+        }
+
+        results
+    }
+
     /// Find all resources within `radius` of the point `(x, y)`.
+    /// Uses 2D distance (ignores z).
     ///
     /// Returns a vec of `(resource_index, resource_x, resource_y)`.
     pub fn query_resources_in_radius(
@@ -106,11 +150,38 @@ impl SpatialIndex {
         let mut results = Vec::new();
 
         for cell_idx in self.cells_in_radius(x, y, radius) {
-            for &(idx, rx, ry) in &self.resource_cells[cell_idx] {
+            for &(idx, rx, ry, _rz) in &self.resource_cells[cell_idx] {
                 let dx = rx - x;
                 let dy = ry - y;
                 if dx * dx + dy * dy <= r_sq {
                     results.push((idx, rx, ry));
+                }
+            }
+        }
+
+        results
+    }
+
+    /// Find all resources within a 3D sphere of `radius` around `(x, y, z)`.
+    ///
+    /// Returns a vec of `(resource_index, resource_x, resource_y, resource_z)`.
+    pub fn query_resources_in_radius_3d(
+        &self,
+        x: f64,
+        y: f64,
+        z: f64,
+        radius: f64,
+    ) -> Vec<(usize, f64, f64, f64)> {
+        let r_sq = radius * radius;
+        let mut results = Vec::new();
+
+        for cell_idx in self.cells_in_radius(x, y, radius) {
+            for &(idx, rx, ry, rz) in &self.resource_cells[cell_idx] {
+                let dx = rx - x;
+                let dy = ry - y;
+                let dz = rz - z;
+                if dx * dx + dy * dy + dz * dz <= r_sq {
+                    results.push((idx, rx, ry, rz));
                 }
             }
         }
@@ -327,5 +398,77 @@ mod tests {
         // Query from the boundary - radius should span both cells
         let results = index.query_entities_in_radius(50.0, 25.0, 5.0);
         assert_eq!(results.len(), 2);
+    }
+
+    // --- 3D spatial index tests ---
+
+    #[test]
+    fn insert_entity_3d_and_query_2d_ignores_z() {
+        let mut index = make_index();
+        // Two entities at same (x,y) but different z
+        index.insert_entity_3d(1, 50.0, 50.0, 0.0);
+        index.insert_entity_3d(2, 50.0, 50.0, 100.0);
+
+        // 2D query should find both (z is ignored)
+        let results = index.query_entities_in_radius(50.0, 50.0, 5.0);
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn query_entities_3d_filters_by_z() {
+        let mut index = make_index();
+        // Entity at ground level
+        index.insert_entity_3d(1, 50.0, 50.0, 0.0);
+        // Entity high in the air
+        index.insert_entity_3d(2, 50.0, 50.0, 100.0);
+
+        // 3D query with small radius from ground - should only find entity 1
+        let results = index.query_entities_in_radius_3d(50.0, 50.0, 0.0, 10.0);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0, 1);
+        assert_eq!(results[0].3, 0.0); // z coordinate returned
+
+        // 3D query with large radius should find both
+        let results = index.query_entities_in_radius_3d(50.0, 50.0, 50.0, 60.0);
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn query_resources_3d_filters_by_z() {
+        let mut index = make_index();
+        index.insert_resource_3d(0, 50.0, 50.0, 0.0);
+        index.insert_resource_3d(1, 50.0, 50.0, 80.0);
+
+        // 3D query from ground
+        let results = index.query_resources_in_radius_3d(50.0, 50.0, 0.0, 10.0);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0, 0);
+    }
+
+    #[test]
+    fn query_3d_sphere_distance() {
+        let mut index = make_index();
+        // Entity at (50, 50, 30) -- 3D distance from (50, 50, 0) is 30
+        index.insert_entity_3d(1, 50.0, 50.0, 30.0);
+
+        // Radius 29 should miss
+        let results = index.query_entities_in_radius_3d(50.0, 50.0, 0.0, 29.0);
+        assert!(results.is_empty());
+
+        // Radius 30 should hit (distance exactly 30, uses <=)
+        let results = index.query_entities_in_radius_3d(50.0, 50.0, 0.0, 30.0);
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn backward_compat_insert_entity_has_z_zero() {
+        let mut index = make_index();
+        // Old-style 2D insert
+        index.insert_entity(1, 50.0, 50.0);
+
+        // 3D query from z=0 with small radius should find it
+        let results = index.query_entities_in_radius_3d(50.0, 50.0, 0.0, 5.0);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].3, 0.0);
     }
 }

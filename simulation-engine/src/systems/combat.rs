@@ -204,7 +204,7 @@ mod tests {
         size: f64,
     ) -> hecs::Entity {
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Health {
                 current: health,
                 max: health,
@@ -306,7 +306,7 @@ mod tests {
         let target = spawn_combatant(&mut world, 50.0, 50.0, 5.0, 100.0, 3.0);
         // Attacker has 50 current out of 200 max, so it has room to gain.
         let attacker = world.ecs.spawn((
-            Position { x: 52.0, y: 50.0 },
+            Position { x: 52.0, y: 50.0, z: 0.0 },
             Health {
                 current: 100.0,
                 max: 100.0,
@@ -623,7 +623,7 @@ mod tests {
         genome: Genome,
     ) -> hecs::Entity {
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Health {
                 current: health,
                 max: health,
@@ -755,7 +755,7 @@ mod tests {
         tribe_id: Option<u64>,
     ) -> hecs::Entity {
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Health {
                 current: health,
                 max: health,

@@ -55,6 +55,9 @@ pub fn score_event(event: &SimEvent) -> f64 {
         SimEvent::CompositeReproduced { .. } => 0.6,
         SimEvent::CompositeFormed { .. } => 0.7,
         SimEvent::CompositeDecomposed { .. } => 0.5,
+        // War events are very significant
+        SimEvent::WarDeclared { .. } => 0.9,
+        SimEvent::WarEnded { .. } => 0.8,
     }
 }
 

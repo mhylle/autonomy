@@ -143,6 +143,7 @@ pub fn run(world: &mut SimulationWorld) {
             Position {
                 x: offspring_x,
                 y: offspring_y,
+                z: 0.0,
             },
             Velocity::default(),
             Energy {
@@ -275,7 +276,7 @@ mod tests {
     fn spawn_entity_with_energy(world: &mut SimulationWorld, energy_current: f64) -> hecs::Entity {
         let genome = Genome::default();
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: energy_current,
@@ -315,7 +316,7 @@ mod tests {
     ) -> hecs::Entity {
         let genome = Genome::default();
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Velocity::default(),
             Energy {
                 current: energy,

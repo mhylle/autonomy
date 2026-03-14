@@ -214,6 +214,9 @@ fn config_from_cli(cli: &Cli) -> SimulationConfig {
         headless: cli.headless,
         snapshot_interval: cli.snapshot_interval,
         snapshot_dir: cli.snapshot_dir.clone(),
+        enable_3d: false,
+        enable_chunks: false,
+        chunk_size: 256.0,
     }
 }
 

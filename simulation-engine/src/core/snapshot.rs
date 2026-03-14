@@ -157,6 +157,9 @@ pub fn restore(snap: SerializableWorld) -> SimulationWorld {
         next_structure_id: 1,
         narrative_tracker: crate::narrative::NarrativeTracker::new(),
         civilization: crate::systems::settlement::CivilizationState::new(),
+        chunk_manager: None,
+        active_wars: std::collections::HashMap::new(),
+        war_kill_history: std::collections::HashMap::new(),
     };
 
     for ent in snap.entities {

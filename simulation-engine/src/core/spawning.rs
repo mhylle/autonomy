@@ -78,7 +78,7 @@ fn random_passable_position(rng: &mut ChaCha8Rng, world: &SimulationWorld) -> Po
         let x = rng.gen_range(0.0..width);
         let y = rng.gen_range(0.0..height);
         if world.terrain.is_passable(x, y) {
-            return Position { x, y };
+            return Position { x, y, z: 0.0 };
         }
     }
 
@@ -89,12 +89,13 @@ fn random_passable_position(rng: &mut ChaCha8Rng, world: &SimulationWorld) -> Po
                 return Position {
                     x: col as f64 * world.terrain.cell_size + 1.0,
                     y: row as f64 * world.terrain.cell_size + 1.0,
+                    z: 0.0,
                 };
             }
         }
     }
 
-    Position { x: 0.0, y: 0.0 }
+    Position { x: 0.0, y: 0.0, z: 0.0 }
 }
 
 #[cfg(test)]

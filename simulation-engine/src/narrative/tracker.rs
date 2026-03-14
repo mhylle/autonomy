@@ -333,6 +333,7 @@ fn event_involves_entity(event: &SimEvent, entity_id: u64) -> bool {
             released_member_ids,
             ..
         } => *leader_id == entity_id || released_member_ids.contains(&entity_id),
+        SimEvent::WarDeclared { .. } | SimEvent::WarEnded { .. } => false,
     }
 }
 

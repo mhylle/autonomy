@@ -108,7 +108,7 @@ mod tests {
 
         // Entity at (50, 50) with half energy.
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 50.0,
                 max: 100.0,
@@ -135,7 +135,7 @@ mod tests {
         let mut world = test_world();
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 50.0,
                 max: 100.0,
@@ -161,7 +161,7 @@ mod tests {
         let mut world = test_world();
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 50.0,
                 max: 100.0,
@@ -186,7 +186,7 @@ mod tests {
 
         // Entity nearly full.
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 95.0,
                 max: 100.0,
@@ -213,7 +213,7 @@ mod tests {
         let mut world = test_world();
 
         world.ecs.spawn((
-            Position { x: 50.0, y: 50.0 },
+            Position { x: 50.0, y: 50.0, z: 0.0 },
             Energy {
                 current: 50.0,
                 max: 100.0,

@@ -93,8 +93,8 @@ mod tests {
         assert_eq!(mult, 1.0, "grassland should have 1.0 multiplier");
 
         world.ecs.spawn((
-            Position { x, y },
-            Velocity { dx: 3.0, dy: 0.0 },
+            Position { x, y, z: 0.0 },
+            Velocity { dx: 3.0, dy: 0.0, dz: 0.0 },
         ));
 
         run(&mut world);
@@ -119,8 +119,8 @@ mod tests {
             assert!(mult < 1.0, "mountain should slow movement");
 
             world.ecs.spawn((
-                Position { x: mx, y: my },
-                Velocity { dx: 10.0, dy: 0.0 },
+                Position { x: mx, y: my, z: 0.0 },
+                Velocity { dx: 10.0, dy: 0.0, dz: 0.0 },
             ));
 
             run(&mut world);
@@ -144,10 +144,11 @@ mod tests {
         // Find a passable cell adjacent to water.
         if let Some((px, py, wx, wy)) = find_passable_near_water(&world) {
             world.ecs.spawn((
-                Position { x: px, y: py },
+                Position { x: px, y: py, z: 0.0 },
                 Velocity {
                     dx: wx - px,
                     dy: wy - py,
+                    dz: 0.0,
                 },
             ));
 
@@ -171,7 +172,7 @@ mod tests {
     fn entity_without_velocity_is_unaffected() {
         let mut world = test_world();
         let (x, y) = find_terrain_position(&world, TerrainType::Grassland);
-        world.ecs.spawn((Position { x, y },));
+        world.ecs.spawn((Position { x, y, z: 0.0 },));
 
         run(&mut world);
 
@@ -201,8 +202,8 @@ mod tests {
         let mut world = test_world();
         let (x, y) = find_terrain_position(&world, TerrainType::Grassland);
         world.ecs.spawn((
-            Position { x, y },
-            Velocity { dx: 1.0, dy: 0.0 },
+            Position { x, y, z: 0.0 },
+            Velocity { dx: 1.0, dy: 0.0, dz: 0.0 },
         ));
 
         run(&mut world);

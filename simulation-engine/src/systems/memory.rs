@@ -264,7 +264,7 @@ mod tests {
         memory_capacity: usize,
     ) -> hecs::Entity {
         world.ecs.spawn((
-            Position { x, y },
+            Position { x, y, z: 0.0 },
             Energy {
                 current: energy_current,
                 max: energy_max,
@@ -596,7 +596,7 @@ mod tests {
 
         // Spawn entity with Position and Energy but NO Memory.
         let entity = world.ecs.spawn((
-            Position { x: 10.0, y: 10.0 },
+            Position { x: 10.0, y: 10.0, z: 0.0 },
             Energy {
                 current: 80.0,
                 max: 100.0,
