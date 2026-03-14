@@ -4,6 +4,7 @@ use crate::components::physical::{Energy, Health, Size};
 use crate::components::spatial::Position;
 use crate::core::world::SimulationWorld;
 use crate::events::types::{DeathCause, SimEvent};
+use crate::systems::tribe::count_nearby_allies;
 
 /// Maximum distance at which an attack can land.
 const ATTACK_RANGE: f64 = 15.0;
@@ -13,6 +14,15 @@ const BASE_DAMAGE: f64 = 5.0;
 
 /// Fraction of the killed target's remaining energy gained by the attacker.
 const KILL_ENERGY_FRACTION: f64 = 0.5;
+
+/// Range within which allies/enemies are counted for morale.
+const MORALE_RANGE: f64 = 30.0;
+
+/// Maximum morale bonus from nearby allies (multiplicative on damage).
+const MAX_MORALE_BONUS: f64 = 0.5;
+
+/// Morale bonus per nearby ally.
+const MORALE_PER_ALLY: f64 = 0.15;
 
 /// Resolves combat actions each tick.
 ///
@@ -61,8 +71,13 @@ pub fn run(world: &mut SimulationWorld) {
             continue;
         }
 
-        // Compute damage.
-        let damage = attacker_size * force * BASE_DAMAGE;
+        // Compute morale bonus from nearby tribe allies.
+        let attacker_id_bits = attacker.to_bits().get();
+        let allies = count_nearby_allies(world, attacker_id_bits, *ax, *ay, MORALE_RANGE);
+        let morale_bonus = (allies as f64 * MORALE_PER_ALLY).min(MAX_MORALE_BONUS);
+
+        // Compute damage with morale modifier.
+        let damage = attacker_size * force * BASE_DAMAGE * (1.0 + morale_bonus);
 
         // Apply damage to target health.
         let (target_health_remaining, target_energy) = {
@@ -720,6 +735,115 @@ mod tests {
         assert!(
             world.kill_matrix.is_empty(),
             "kill matrix should not be updated for non-lethal attacks"
+        );
+    }
+
+    // ---- Phase 5.6: Group combat / morale tests ----
+
+    use crate::components::social::Social;
+    use crate::components::tribe::{Tribe, TribeId};
+    use std::collections::HashSet;
+
+    /// Spawn a combat-ready entity with a TribeId component.
+    fn spawn_tribal_combatant(
+        world: &mut SimulationWorld,
+        x: f64,
+        y: f64,
+        health: f64,
+        energy: f64,
+        size: f64,
+        tribe_id: Option<u64>,
+    ) -> hecs::Entity {
+        world.ecs.spawn((
+            Position { x, y },
+            Health {
+                current: health,
+                max: health,
+            },
+            Energy {
+                current: energy,
+                max: energy,
+                metabolism_rate: 0.1,
+            },
+            Size { radius: size },
+            Age::default(),
+            Action::None,
+            TribeId(tribe_id),
+            Social::default(),
+        ))
+    }
+
+    #[test]
+    fn morale_bonus_increases_damage_with_allies_nearby() {
+        let mut world = test_world();
+
+        let tribe_id = 1u64;
+
+        // Target with lots of health.
+        let target = spawn_tribal_combatant(&mut world, 50.0, 50.0, 500.0, 80.0, 5.0, Some(2));
+
+        // Attacker with allies nearby.
+        let attacker = spawn_tribal_combatant(&mut world, 52.0, 50.0, 100.0, 80.0, 5.0, Some(tribe_id));
+        let ally1 = spawn_tribal_combatant(&mut world, 54.0, 50.0, 100.0, 80.0, 5.0, Some(tribe_id));
+        let ally2 = spawn_tribal_combatant(&mut world, 56.0, 50.0, 100.0, 80.0, 5.0, Some(tribe_id));
+
+        let attacker_id = attacker.to_bits().get();
+        let ally1_id = ally1.to_bits().get();
+        let ally2_id = ally2.to_bits().get();
+
+        // Register tribe.
+        let members: HashSet<u64> = [attacker_id, ally1_id, ally2_id].into_iter().collect();
+        world.tribes.insert(tribe_id, Tribe::new(tribe_id, members, 54.0, 50.0, 0));
+
+        let target_id = target.to_bits().get();
+        *world.ecs.get::<&mut Action>(attacker).unwrap() = Action::Attack {
+            target_id,
+            force: 1.0,
+        };
+
+        run(&mut world);
+
+        let target_health = world.ecs.get::<&Health>(target).unwrap();
+        // Base damage = 5.0 * 1.0 * 5.0 = 25.0
+        // With 2 allies: morale = 2 * 0.15 = 0.30, damage = 25.0 * 1.30 = 32.5
+        let expected_damage = 25.0 * (1.0 + 2.0 * MORALE_PER_ALLY);
+        let actual_damage = 500.0 - target_health.current;
+        assert!(
+            (actual_damage - expected_damage).abs() < 0.01,
+            "damage with allies should be {}, got {}",
+            expected_damage,
+            actual_damage
+        );
+    }
+
+    #[test]
+    fn no_morale_bonus_without_tribe() {
+        let mut world = test_world();
+
+        // Target.
+        let target = spawn_tribal_combatant(&mut world, 50.0, 50.0, 500.0, 80.0, 5.0, None);
+
+        // Attacker without a tribe.
+        let attacker = spawn_tribal_combatant(&mut world, 52.0, 50.0, 100.0, 80.0, 5.0, None);
+
+        // Other entity nearby but no tribe connection.
+        spawn_tribal_combatant(&mut world, 54.0, 50.0, 100.0, 80.0, 5.0, None);
+
+        let target_id = target.to_bits().get();
+        *world.ecs.get::<&mut Action>(attacker).unwrap() = Action::Attack {
+            target_id,
+            force: 1.0,
+        };
+
+        run(&mut world);
+
+        let target_health = world.ecs.get::<&Health>(target).unwrap();
+        // Base damage = 5.0 * 1.0 * 5.0 = 25.0, no morale bonus.
+        let actual_damage = 500.0 - target_health.current;
+        assert!(
+            (actual_damage - 25.0).abs() < 0.01,
+            "damage without tribe should be 25.0, got {}",
+            actual_damage
         );
     }
 }

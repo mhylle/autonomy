@@ -2,8 +2,10 @@ use hecs::World;
 
 use super::config::SimulationConfig;
 use super::rng::SimulationRng;
+use crate::components::tribe::Tribe;
 use crate::environment::climate::Climate;
 use crate::environment::resources::Resource;
+use crate::environment::signals::Signal;
 use crate::environment::spatial_index::SpatialIndex;
 use crate::environment::terrain::TerrainGrid;
 use crate::events::EventLog;
@@ -31,6 +33,13 @@ pub struct SimulationWorld {
     /// Tracks how many times members of one species killed members of another,
     /// enabling analysis of predator-prey dynamics and coevolutionary arms races.
     pub kill_matrix: std::collections::HashMap<(u64, u64), u32>,
+    /// Active signals in the environment. Signals decay each tick and are
+    /// removed when their strength reaches zero.
+    pub signals: Vec<Signal>,
+    /// Active tribes, keyed by tribe ID.
+    pub tribes: std::collections::HashMap<u64, Tribe>,
+    /// Next unique tribe ID to assign.
+    pub next_tribe_id: u64,
 }
 
 impl SimulationWorld {
@@ -57,6 +66,9 @@ impl SimulationWorld {
             speed_multiplier: 1.0,
             species_history: Vec::new(),
             kill_matrix: std::collections::HashMap::new(),
+            signals: Vec::new(),
+            tribes: std::collections::HashMap::new(),
+            next_tribe_id: 1,
         }
     }
 

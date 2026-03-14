@@ -11,6 +11,9 @@ pub enum MemoryKind {
     EnvironmentChange,
     NearDeath,
     Migrated,
+    /// Culturally transmitted memory: learned by observing a tribemate.
+    /// The `associated_entity_id` on the `MemoryEntry` points to the teacher.
+    Observed,
 }
 
 /// A single remembered experience.
@@ -358,7 +361,7 @@ mod tests {
 
     #[test]
     fn memory_kind_all_variants_exist() {
-        // Ensure all 8 variants compile and can be compared.
+        // Ensure all 9 variants compile and can be compared.
         let kinds = [
             MemoryKind::FoundFood,
             MemoryKind::WasAttacked,
@@ -368,8 +371,9 @@ mod tests {
             MemoryKind::EnvironmentChange,
             MemoryKind::NearDeath,
             MemoryKind::Migrated,
+            MemoryKind::Observed,
         ];
-        assert_eq!(kinds.len(), 8);
+        assert_eq!(kinds.len(), 9);
         // All should be distinct.
         for i in 0..kinds.len() {
             for j in (i + 1)..kinds.len() {

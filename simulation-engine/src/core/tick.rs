@@ -19,6 +19,7 @@ pub fn tick(world: &mut SimulationWorld) {
     systems::perception::run(world);                 //  2. perception
     systems::drives::run(world);                     //  3. drives
     systems::decision::run(world);                   //  4. decision (BT -> Action)
+    systems::signals::run(world);                    //  4a. signal emission & decay
     systems::wander::run(world);                     //  4b. action -> velocity
     systems::movement::run(world);                   //  5. movement
     systems::feeding::run(world);                    //  6. feeding
@@ -27,6 +28,8 @@ pub fn tick(world: &mut SimulationWorld) {
     systems::composition::run(world);                //  9. composition
     systems::composite_reproduction::run(world);     //  9b. composite reproduction
     systems::memory::run(world);                     // 10. memory
+    systems::tribe::run(world);                      // 10b. tribe formation/maintenance
+    systems::cultural_transmission::run(world);      // 10c. cultural transmission
     systems::aging::run(world);                      // 11. aging
     systems::cleanup::run(world);                    // 12. cleanup
     // 13. event_emit   (Phase 1.5+)

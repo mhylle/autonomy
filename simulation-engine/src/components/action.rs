@@ -22,6 +22,10 @@ pub enum Action {
     FleeFrom { x: f64, y: f64, speed: f64 },
     /// Attempt to merge with a nearby compatible entity.
     CompositionAttempt,
+    /// Emit a signal into the environment.
+    EmitSignal { signal_type: u8 },
+    /// Move toward a perceived signal source.
+    MoveTowardSignal { x: f64, y: f64, speed: f64 },
     /// No action this tick.
     None,
 }
@@ -52,6 +56,8 @@ mod tests {
             Action::Attack { target_id: 42, force: 0.8 },
             Action::FleeFrom { x: 10.0, y: 20.0, speed: 3.0 },
             Action::CompositionAttempt,
+            Action::EmitSignal { signal_type: 1 },
+            Action::MoveTowardSignal { x: 30.0, y: 40.0, speed: 2.0 },
             Action::None,
         ];
         for action in &actions {

@@ -131,7 +131,7 @@ const ALL_MEMORY_FILTERS: [MemoryKindFilter; 4] = [
 
 /// Generate a random leaf node (condition or action).
 fn random_leaf(rng: &mut ChaCha8Rng) -> BtNode {
-    match rng.gen_range(0..11) {
+    match rng.gen_range(0..14) {
         0 => BtNode::CheckDrive {
             drive: ALL_DRIVES[rng.gen_range(0..ALL_DRIVES.len())],
             threshold: rng.gen_range(0.1..0.9),
@@ -166,7 +166,18 @@ fn random_leaf(rng: &mut ChaCha8Rng) -> BtNode {
             speed_factor: rng.gen_range(0.5..3.0),
         },
         // Composition (Phase 4.1)
-        _ => BtNode::CompositionAttempt,
+        10 => BtNode::CompositionAttempt,
+        // Signal nodes (Phase 5.1 & 5.2)
+        11 => BtNode::EmitSignal {
+            signal_type: rng.gen_range(0..8),
+        },
+        12 => BtNode::DetectSignal {
+            signal_type: rng.gen_range(0..8),
+        },
+        _ => BtNode::MoveTowardSignal {
+            signal_type: rng.gen_range(0..8),
+            speed_factor: rng.gen_range(0.5..3.0),
+        },
     }
 }
 
@@ -339,6 +350,16 @@ pub fn mutate_parameters(node: &BtNode, mutation_rate: f64, rng: &mut ChaCha8Rng
             speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
         },
         BtNode::CompositionAttempt => BtNode::CompositionAttempt,
+        BtNode::EmitSignal { signal_type } => BtNode::EmitSignal {
+            signal_type: *signal_type,
+        },
+        BtNode::DetectSignal { signal_type } => BtNode::DetectSignal {
+            signal_type: *signal_type,
+        },
+        BtNode::MoveTowardSignal { signal_type, speed_factor } => BtNode::MoveTowardSignal {
+            signal_type: *signal_type,
+            speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
+        },
     }
 }
 
@@ -441,7 +462,10 @@ fn structural_replace(node: &BtNode, rng: &mut ChaCha8Rng) -> BtNode {
         | BtNode::NearbyEntityFiltered { .. }
         | BtNode::MoveTowardEntity { .. }
         | BtNode::FleeFromEntity { .. }
-        | BtNode::CompositionAttempt => random_leaf(rng),
+        | BtNode::CompositionAttempt
+        | BtNode::EmitSignal { .. }
+        | BtNode::DetectSignal { .. }
+        | BtNode::MoveTowardSignal { .. } => random_leaf(rng),
         // For composite nodes, swap Sequence <-> Selector.
         BtNode::Sequence(children) => BtNode::Selector(children.clone()),
         BtNode::Selector(children) => BtNode::Sequence(children.clone()),
@@ -563,7 +587,10 @@ fn enforce_depth_at(node: &BtNode, current_depth: usize, rng: &mut ChaCha8Rng) -
             | BtNode::NearbyEntityFiltered { .. }
             | BtNode::MoveTowardEntity { .. }
             | BtNode::FleeFromEntity { .. }
-            | BtNode::CompositionAttempt => node.clone(),
+            | BtNode::CompositionAttempt
+            | BtNode::EmitSignal { .. }
+            | BtNode::DetectSignal { .. }
+            | BtNode::MoveTowardSignal { .. } => node.clone(),
             // Otherwise, replace with random leaf.
             _ => random_leaf(rng),
         };
@@ -619,7 +646,8 @@ fn is_valid_recursive(node: &BtNode) -> bool {
             speed_factor.is_finite() && *speed_factor >= 0.0
         }
         BtNode::Wander { speed } => speed.is_finite() && *speed >= 0.0,
-        BtNode::Eat | BtNode::Rest | BtNode::CompositionAttempt => true,
+        BtNode::Eat | BtNode::Rest | BtNode::CompositionAttempt
+        | BtNode::EmitSignal { .. } | BtNode::DetectSignal { .. } => true,
         BtNode::NearbyEntity { range } => range.is_finite() && *range >= 0.0,
         BtNode::Attack { force_factor } => force_factor.is_finite() && *force_factor >= 0.0,
         BtNode::RecallMemory { max_age, .. } => *max_age > 0,
@@ -634,6 +662,9 @@ fn is_valid_recursive(node: &BtNode) -> bool {
             speed_factor.is_finite() && *speed_factor >= 0.0
         }
         BtNode::FleeFromEntity { speed_factor, .. } => {
+            speed_factor.is_finite() && *speed_factor >= 0.0
+        }
+        BtNode::MoveTowardSignal { speed_factor, .. } => {
             speed_factor.is_finite() && *speed_factor >= 0.0
         }
     }

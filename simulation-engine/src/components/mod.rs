@@ -10,6 +10,7 @@ pub mod perception;
 pub mod physical;
 pub mod social;
 pub mod spatial;
+pub mod tribe;
 
 pub use action::Action;
 pub use behavior_tree::BtNode;
@@ -25,3 +26,4 @@ pub use perception::Perception;
 pub use physical::{Age, Energy, Health, Size};
 pub use social::Social;
 pub use spatial::{Position, Velocity};
+pub use tribe::TribeId;

@@ -117,6 +117,10 @@ pub enum BtAction {
     FleeFromEntity { entity_id: u64, x: f64, y: f64, speed_factor: f64 },
     /// Attempt to merge with a nearby compatible entity (Phase 4.1).
     CompositionAttempt,
+    /// Emit a signal into the environment (Phase 5.1).
+    EmitSignal { signal_type: u8 },
+    /// Move toward a perceived signal source (Phase 5.2).
+    MoveTowardSignal { x: f64, y: f64, speed_factor: f64 },
     /// No action.
     None,
 }
@@ -164,6 +168,22 @@ pub struct BtContext {
     /// All recalled memory locations with their kinds and valences,
     /// for general-purpose memory filter matching.
     pub memory_entries: Vec<MemoryContextEntry>,
+
+    // -- Signal integration fields (Phase 5.2) --
+    /// Perceived signals available for BT condition/action nodes.
+    pub perceived_signals: Vec<PerceivedSignalInfo>,
+}
+
+/// Lightweight snapshot of a perceived signal for BT evaluation.
+#[derive(Debug, Clone)]
+pub struct PerceivedSignalInfo {
+    pub signal_type: u8,
+    pub distance: f64,
+    pub direction_x: f64,
+    pub direction_y: f64,
+    pub strength: f64,
+    pub source_x: f64,
+    pub source_y: f64,
 }
 
 /// A lightweight snapshot of a memory entry for BT evaluation.
@@ -199,6 +219,21 @@ impl BtContext {
     /// Check whether any entity matching the filter is within range.
     pub fn has_filtered_entity(&self, filter: &EntityFilter, range: f64) -> bool {
         self.closest_filtered_entity(filter, range).is_some()
+    }
+
+    /// Check whether any perceived signal of the given type exists.
+    pub fn has_signal_of_type(&self, signal_type: u8) -> bool {
+        self.perceived_signals
+            .iter()
+            .any(|s| s.signal_type == signal_type)
+    }
+
+    /// Find the strongest perceived signal of a given type.
+    pub fn strongest_signal_of_type(&self, signal_type: u8) -> Option<&PerceivedSignalInfo> {
+        self.perceived_signals
+            .iter()
+            .filter(|s| s.signal_type == signal_type)
+            .max_by(|a, b| a.strength.partial_cmp(&b.strength).unwrap_or(std::cmp::Ordering::Equal))
     }
 
     /// Check whether any memory entry matches the given filter within the max age.
@@ -327,6 +362,16 @@ pub enum BtNode {
     // -- Action nodes (composition, Phase 4.1) --
     /// Attempt to merge with a nearby compatible entity.
     CompositionAttempt,
+
+    // -- Condition nodes (signals, Phase 5.2) --
+    /// Check if a signal of the given type is perceived.
+    DetectSignal { signal_type: u8 },
+
+    // -- Action nodes (signals, Phase 5.1 & 5.2) --
+    /// Emit a signal into the environment.
+    EmitSignal { signal_type: u8 },
+    /// Move toward the strongest perceived signal of a given type.
+    MoveTowardSignal { signal_type: u8, speed_factor: f64 },
 }
 
 /// Recursively evaluate a behavior tree node given a context.
@@ -553,6 +598,35 @@ pub fn tick_bt(node: &BtNode, ctx: &BtContext) -> (BtStatus, BtAction) {
                 (BtStatus::Failure, BtAction::None)
             }
         }
+
+        // Signal condition node (Phase 5.2)
+        BtNode::DetectSignal { signal_type } => {
+            if ctx.has_signal_of_type(*signal_type) {
+                (BtStatus::Success, BtAction::None)
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        // Signal action nodes (Phase 5.1 & 5.2)
+        BtNode::EmitSignal { signal_type } => {
+            (BtStatus::Success, BtAction::EmitSignal { signal_type: *signal_type })
+        }
+
+        BtNode::MoveTowardSignal { signal_type, speed_factor } => {
+            if let Some(sig) = ctx.strongest_signal_of_type(*signal_type) {
+                (
+                    BtStatus::Success,
+                    BtAction::MoveTowardSignal {
+                        x: sig.source_x,
+                        y: sig.source_y,
+                        speed_factor: *speed_factor,
+                    },
+                )
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
     }
 }
 
@@ -735,6 +809,7 @@ mod tests {
             was_attacked_count: 0,
             current_tick: 100,
             memory_entries: vec![],
+            perceived_signals: vec![],
         }
     }
 
@@ -759,6 +834,7 @@ mod tests {
             was_attacked_count: 0,
             current_tick: 100,
             memory_entries: vec![],
+            perceived_signals: vec![],
         }
     }
 
@@ -1023,6 +1099,7 @@ mod tests {
                 tick: 150,
                 emotional_valence: 0.5,
             }],
+            perceived_signals: vec![],
         }
     }
 
@@ -1053,6 +1130,7 @@ mod tests {
                 tick: 180,
                 emotional_valence: -0.9,
             }],
+            perceived_signals: vec![],
         }
     }
 
@@ -1290,6 +1368,7 @@ mod tests {
             was_attacked_count: 0,
             current_tick: 100,
             memory_entries: vec![],
+            perceived_signals: vec![],
         }
     }
 

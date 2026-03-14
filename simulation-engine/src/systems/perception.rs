@@ -1,8 +1,9 @@
 use crate::components::genome::Genome;
-use crate::components::perception::{PerceivedEntity, PerceivedResource, Perception};
+use crate::components::perception::{PerceivedEntity, PerceivedResource, PerceivedSignal, Perception};
 use crate::components::physical::Energy;
 use crate::components::spatial::Position;
 use crate::core::world::SimulationWorld;
+use crate::environment::signals::SignalManager;
 
 /// Maximum noise factor applied to energy estimates at maximum sensor range.
 /// At distance == sensor_range, the estimate can be off by up to 30%.
@@ -48,8 +49,12 @@ pub fn run(world: &mut SimulationWorld) {
         .collect();
 
     // 3. For each perceiver, query the spatial index and build perception.
-    let mut perception_updates: Vec<(hecs::Entity, Vec<PerceivedEntity>, Vec<PerceivedResource>)> =
-        Vec::new();
+    let mut perception_updates: Vec<(
+        hecs::Entity,
+        Vec<PerceivedEntity>,
+        Vec<PerceivedResource>,
+        Vec<PerceivedSignal>,
+    )> = Vec::new();
 
     for (entity, x, y, sensor_range, species_id) in &perceivers {
         let self_bits = entity.to_bits().get();
@@ -114,16 +119,58 @@ pub fn run(world: &mut SimulationWorld) {
             });
         }
 
-        perception_updates.push((*entity, perceived_entities, perceived_resources));
+        // Query nearby signals within sensor range.
+        let perceived_signals = perceive_signals(&world.signals, *x, *y, *sensor_range, self_bits);
+
+        perception_updates.push((*entity, perceived_entities, perceived_resources, perceived_signals));
     }
 
     // 4. Apply perception updates.
-    for (entity, entities, resources) in perception_updates {
+    for (entity, entities, resources, signals) in perception_updates {
         if let Ok(mut perception) = world.ecs.get::<&mut Perception>(entity) {
             perception.perceived_entities = entities;
             perception.perceived_resources = resources;
+            perception.perceived_signals = signals;
         }
     }
+}
+
+/// Build the list of perceived signals for a perceiver at (px, py) with given sensor_range.
+///
+/// Excludes signals emitted by the perceiver itself.
+fn perceive_signals(
+    signals: &[crate::environment::signals::Signal],
+    px: f64,
+    py: f64,
+    sensor_range: f64,
+    self_id: u64,
+) -> Vec<PerceivedSignal> {
+    let nearby = SignalManager::query_at(signals, px, py, sensor_range);
+    nearby
+        .into_iter()
+        .filter(|s| s.emitter_id != self_id)
+        .map(|s| {
+            let dx = s.x - px;
+            let dy = s.y - py;
+            let distance = (dx * dx + dy * dy).sqrt();
+            let (dir_x, dir_y) = if distance > 0.001 {
+                (dx / distance, dy / distance)
+            } else {
+                (0.0, 0.0)
+            };
+            let strength = s.strength_at_distance(distance);
+
+            PerceivedSignal {
+                signal_type: s.signal_type,
+                distance,
+                direction_x: dir_x,
+                direction_y: dir_y,
+                strength,
+                source_x: s.x,
+                source_y: s.y,
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

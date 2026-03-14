@@ -144,6 +144,9 @@ pub fn restore(snap: SerializableWorld) -> SimulationWorld {
         speed_multiplier: snap.speed_multiplier,
         species_history: snap.species_history,
         kill_matrix: std::collections::HashMap::new(),
+        signals: Vec::new(),
+        tribes: std::collections::HashMap::new(),
+        next_tribe_id: 1,
     };
 
     for ent in snap.entities {

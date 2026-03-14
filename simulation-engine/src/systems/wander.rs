@@ -58,7 +58,18 @@ pub fn run(world: &mut SimulationWorld) {
                         (angle.cos() * speed, angle.sin() * speed)
                     }
                 }
-                Action::Rest | Action::Eat | Action::None | Action::Attack { .. } | Action::CompositionAttempt => (0.0, 0.0),
+                Action::MoveTowardSignal { x, y, speed } => {
+                    let dx = x - pos.x;
+                    let dy = y - pos.y;
+                    let dist = (dx * dx + dy * dy).sqrt();
+                    if dist > 0.01 {
+                        (dx / dist * speed, dy / dist * speed)
+                    } else {
+                        (0.0, 0.0)
+                    }
+                }
+                Action::Rest | Action::Eat | Action::None | Action::Attack { .. }
+                | Action::CompositionAttempt | Action::EmitSignal { .. } => (0.0, 0.0),
             };
             (entity, dx, dy)
         })

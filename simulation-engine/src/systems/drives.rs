@@ -5,6 +5,7 @@ use crate::components::perception::Perception;
 use crate::components::physical::{Age, Energy, Size};
 use crate::components::social::Social;
 use crate::components::spatial::Position;
+use crate::components::tribe::TribeId;
 use crate::core::world::SimulationWorld;
 
 /// How many ticks an entity must stay near the same position to max curiosity.
@@ -20,6 +21,15 @@ const SOCIAL_NEED_SATURATION_TICKS: f64 = 500.0;
 
 /// Max age (in ticks) for WasAttacked memories to contribute to fear.
 const MEMORY_FEAR_RECALL_AGE: u64 = 300;
+
+/// Distance from tribe centroid at which territorial pull starts reducing curiosity.
+const TERRITORY_PULL_RANGE: f64 = 100.0;
+
+/// Maximum reduction in fear from nearby tribe allies.
+const TRIBE_FEAR_REDUCTION: f64 = 0.3;
+
+/// Range for counting allies that reduce fear.
+const TRIBE_ALLY_FEAR_RANGE: f64 = 30.0;
 
 /// Computes drive values from entity state each tick.
 ///
@@ -92,6 +102,41 @@ pub fn run(world: &mut SimulationWorld) {
             };
             let reproductive_urge =
                 (energy_surplus * maturity * genome.drive_weights.base_reproductive).clamp(0.0, 1.0);
+
+            // Territory pull: if in a tribe, reduce curiosity when near territory centroid.
+            let tribe_id_opt = world.ecs.get::<&TribeId>(entity).ok().and_then(|tid| tid.0);
+            let territory_curiosity_reduction = if let Some(tid) = tribe_id_opt {
+                if let Some(tribe) = world.tribes.get(&tid) {
+                    let dx = pos.x - tribe.territory_centroid_x;
+                    let dy = pos.y - tribe.territory_centroid_y;
+                    let dist_to_centroid = (dx * dx + dy * dy).sqrt();
+                    // When near territory, reduce curiosity (entities prefer staying).
+                    // When far from territory, curiosity reduction is 0 (no penalty).
+                    if dist_to_centroid < TERRITORY_PULL_RANGE {
+                        let closeness = 1.0 - (dist_to_centroid / TERRITORY_PULL_RANGE);
+                        closeness * 0.3 // max 0.3 reduction
+                    } else {
+                        0.0
+                    }
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            };
+            let curiosity = (curiosity - territory_curiosity_reduction).clamp(0.0, 1.0);
+
+            // Tribe ally nearby reduces fear (safety in numbers).
+            let tribe_fear_reduction = if let Some(_tid) = tribe_id_opt {
+                let entity_id_bits = entity.to_bits().get();
+                let ally_count = crate::systems::tribe::count_nearby_allies(
+                    world, entity_id_bits, pos.x, pos.y, TRIBE_ALLY_FEAR_RANGE,
+                );
+                (ally_count as f64 * 0.1).min(TRIBE_FEAR_REDUCTION)
+            } else {
+                0.0
+            };
+            let fear = (fear - tribe_fear_reduction).clamp(0.0, 1.0);
 
             (entity, hunger, fear, curiosity, social_need, aggression, reproductive_urge, pos.x, pos.y)
         })

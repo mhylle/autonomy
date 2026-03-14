@@ -1026,3 +1026,238 @@ fn composite_reproduction_produces_offspring() {
         "should emit exactly one CompositeReproduced event"
     );
 }
+
+// ==================== Phase 5: Signal System ====================
+
+/// Phase 5.1-5.3: Signal system end-to-end integration test.
+///
+/// Verifies:
+/// - Entities with EmitSignal BT nodes create signals in the world
+/// - Signals decay over time and are eventually removed
+/// - Entities with DetectSignal/MoveTowardSignal BT nodes can perceive
+///   and respond to signals
+/// - The full tick pipeline handles signals without panics
+#[test]
+fn signal_system_end_to_end() {
+    use simulation_engine::components::action::Action;
+    use simulation_engine::components::behavior_tree::{
+        BtNode, Comparison, DriveKind,
+    };
+    use simulation_engine::components::drives::Drives;
+    use simulation_engine::components::genome::Genome;
+    use simulation_engine::components::perception::Perception;
+    use simulation_engine::components::spatial::{Position, Velocity};
+    use simulation_engine::components::physical::{Age, Energy, Health, Size};
+    use simulation_engine::components::identity::Identity;
+    use simulation_engine::components::social::Social;
+    use simulation_engine::components::memory::Memory;
+    use simulation_engine::environment::signals::Signal;
+
+    let config = SimulationConfig {
+        seed: 42,
+        initial_entity_count: 0, // manual spawning
+        world_width: 200.0,
+        world_height: 200.0,
+        ..SimulationConfig::default()
+    };
+    let mut world = SimulationWorld::new(config);
+
+    // -- Emitter entity: always emits signal type 1 --
+    let emitter_bt = BtNode::EmitSignal { signal_type: 1 };
+    let emitter_genome = Genome::default();
+    let emitter = world.ecs.spawn((
+        Position { x: 50.0, y: 50.0 },
+        Velocity::default(),
+        Energy {
+            current: 80.0,
+            max: emitter_genome.max_energy,
+            metabolism_rate: emitter_genome.metabolism_rate,
+        },
+        Health { current: 100.0, max: 100.0 },
+        Age { ticks: 0, max_lifespan: emitter_genome.max_lifespan },
+        Size { radius: emitter_genome.size },
+        Identity { generation: 0, parent_id: None, birth_tick: 0 },
+        Perception::default(),
+        Drives::default(),
+        Social::default(),
+        Memory::default(),
+        emitter_bt,
+        Action::default(),
+        emitter_genome,
+    ));
+
+    // -- Receiver entity: detects signal 1 and moves toward it --
+    let receiver_bt = BtNode::Selector(vec![
+        BtNode::Sequence(vec![
+            BtNode::DetectSignal { signal_type: 1 },
+            BtNode::MoveTowardSignal { signal_type: 1, speed_factor: 1.0 },
+        ]),
+        BtNode::Wander { speed: 1.0 },
+    ]);
+    let receiver_genome = Genome {
+        sensor_range: 150.0, // large sensor range to detect signal
+        ..Genome::default()
+    };
+    let receiver = world.ecs.spawn((
+        Position { x: 150.0, y: 50.0 },
+        Velocity::default(),
+        Energy {
+            current: 80.0,
+            max: receiver_genome.max_energy,
+            metabolism_rate: receiver_genome.metabolism_rate,
+        },
+        Health { current: 100.0, max: 100.0 },
+        Age { ticks: 0, max_lifespan: receiver_genome.max_lifespan },
+        Size { radius: receiver_genome.size },
+        Identity { generation: 0, parent_id: None, birth_tick: 0 },
+        Perception::default(),
+        Drives::default(),
+        Social::default(),
+        Memory::default(),
+        receiver_bt,
+        Action::default(),
+        receiver_genome,
+    ));
+
+    // Run a few ticks to let signals build up.
+    for _ in 0..5 {
+        tick::tick(&mut world);
+    }
+
+    // Verify signals exist in the world.
+    assert!(
+        !world.signals.is_empty(),
+        "signals should exist after emitter ticks"
+    );
+
+    // Verify signals have the right type and are at the emitter's position.
+    let emitter_signals: Vec<_> = world.signals
+        .iter()
+        .filter(|s| s.signal_type == 1)
+        .collect();
+    assert!(
+        !emitter_signals.is_empty(),
+        "should have type-1 signals from emitter"
+    );
+
+    // Check that the emitter's signals are near position (50, 50).
+    for sig in &emitter_signals {
+        assert!((sig.x - 50.0).abs() < 20.0, "signal x should be near emitter");
+        assert!((sig.y - 50.0).abs() < 20.0, "signal y should be near emitter");
+    }
+
+    // Verify the receiver perceives signals.
+    let receiver_perception = world.ecs.get::<&Perception>(receiver).unwrap();
+    let perceived_type_1: Vec<_> = receiver_perception.perceived_signals
+        .iter()
+        .filter(|s| s.signal_type == 1)
+        .collect();
+    assert!(
+        !perceived_type_1.is_empty(),
+        "receiver should perceive type-1 signals"
+    );
+
+    // Record initial receiver position.
+    let initial_rx = world.ecs.get::<&Position>(receiver).unwrap().x;
+
+    // Run more ticks for receiver to move toward signal.
+    for _ in 0..20 {
+        tick::tick(&mut world);
+    }
+
+    // Receiver should have moved closer to the emitter (toward x=50).
+    let final_rx = world.ecs.get::<&Position>(receiver).unwrap().x;
+    assert!(
+        final_rx < initial_rx,
+        "receiver should move toward emitter: initial_x={}, final_x={}",
+        initial_rx, final_rx
+    );
+
+    // Verify signals decay: stop the emitter from emitting by changing its BT.
+    world.ecs.insert_one(emitter, BtNode::Rest).unwrap();
+    let signals_before = world.signals.len();
+
+    // Run many ticks for signals to fully decay.
+    for _ in 0..100 {
+        tick::tick(&mut world);
+    }
+
+    assert!(
+        world.signals.len() < signals_before || world.signals.is_empty(),
+        "signals should have decayed: before={}, after={}",
+        signals_before, world.signals.len()
+    );
+}
+
+/// Phase 5.3: Signal nodes appear in evolved BTs (random_leaf includes signal nodes).
+#[test]
+fn signal_nodes_in_evolved_bts() {
+    use simulation_engine::components::bt_ops;
+    use simulation_engine::components::behavior_tree::{BtNode, node_count, depth};
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
+
+    let mut rng = ChaCha8Rng::seed_from_u64(42);
+    let mut found_emit = false;
+    let mut found_detect = false;
+    let mut found_move_toward = false;
+
+    // Generate many random trees and check for signal nodes.
+    for _ in 0..500 {
+        let tree = bt_ops::random_subtree(&mut rng, 5);
+        check_for_signal_nodes(&tree, &mut found_emit, &mut found_detect, &mut found_move_toward);
+        if found_emit && found_detect && found_move_toward {
+            break;
+        }
+    }
+
+    assert!(found_emit, "EmitSignal should appear in random BTs");
+    assert!(found_detect, "DetectSignal should appear in random BTs");
+    assert!(found_move_toward, "MoveTowardSignal should appear in random BTs");
+}
+
+fn check_for_signal_nodes(node: &simulation_engine::components::BtNode, emit: &mut bool, detect: &mut bool, move_toward: &mut bool) {
+    use simulation_engine::components::behavior_tree::BtNode;
+    match node {
+        BtNode::EmitSignal { .. } => *emit = true,
+        BtNode::DetectSignal { .. } => *detect = true,
+        BtNode::MoveTowardSignal { .. } => *move_toward = true,
+        BtNode::Sequence(children) | BtNode::Selector(children) => {
+            for child in children {
+                check_for_signal_nodes(child, emit, detect, move_toward);
+            }
+        }
+        BtNode::Inverter(child) | BtNode::AlwaysSucceed(child) => {
+            check_for_signal_nodes(child, emit, detect, move_toward);
+        }
+        _ => {}
+    }
+}
+
+/// Phase 5.1-5.3: Full simulation with signals runs without panics.
+///
+/// Spawns a population with entities that may evolve signal behaviors,
+/// and verifies the simulation doesn't crash over 2000 ticks.
+#[test]
+fn full_simulation_with_signals_runs() {
+    let config = SimulationConfig {
+        seed: 42,
+        initial_entity_count: 40,
+        world_width: 300.0,
+        world_height: 300.0,
+        ..SimulationConfig::default()
+    };
+    let mut world = SimulationWorld::new(config);
+    resource_spawning::scatter_resources(&mut world);
+    spawning::spawn_initial_population(&mut world);
+
+    // Run 2000 ticks -- with signal system in the pipeline, no crashes.
+    for _ in 0..2000 {
+        tick::tick(&mut world);
+    }
+
+    assert!(
+        world.entity_count() > 0,
+        "population should survive 2000 ticks with signals"
+    );
+}

@@ -1,6 +1,7 @@
 use crate::components::action::Action;
 use crate::components::behavior_tree::{
-    tick_bt, BtAction, BtContext, BtNode, MemoryContextEntry, SocialEntityInfo,
+    tick_bt, BtAction, BtContext, BtNode, MemoryContextEntry, PerceivedSignalInfo,
+    SocialEntityInfo,
 };
 use crate::components::drives::Drives;
 use crate::components::memory::{Memory, MemoryKind};
@@ -75,6 +76,7 @@ pub fn run(world: &mut SimulationWorld) {
                 was_attacked_count,
                 current_tick,
                 memory_entries,
+                perceived_signals: build_signal_context(perception),
             };
 
             let (_status, bt_action) = tick_bt(bt, &ctx);
@@ -149,6 +151,16 @@ pub fn run(world: &mut SimulationWorld) {
                     }
                 }
                 BtAction::CompositionAttempt => Action::CompositionAttempt,
+                BtAction::EmitSignal { signal_type } => {
+                    Action::EmitSignal { signal_type }
+                }
+                BtAction::MoveTowardSignal { x, y, speed_factor } => {
+                    Action::MoveTowardSignal {
+                        x,
+                        y,
+                        speed: speed_factor * 2.0,
+                    }
+                }
                 BtAction::None => Action::None,
             };
 
@@ -210,6 +222,23 @@ fn build_memory_context(
         .collect();
 
     (has_food_memory, food_memory_location, has_threat_memory, threat_memory_location, was_attacked_count, memory_entries)
+}
+
+/// Build signal context info from perceived signals for BT evaluation.
+fn build_signal_context(perception: &Perception) -> Vec<PerceivedSignalInfo> {
+    perception
+        .perceived_signals
+        .iter()
+        .map(|ps| PerceivedSignalInfo {
+            signal_type: ps.signal_type,
+            distance: ps.distance,
+            direction_x: ps.direction_x,
+            direction_y: ps.direction_y,
+            strength: ps.strength,
+            source_x: ps.source_x,
+            source_y: ps.source_y,
+        })
+        .collect()
 }
 
 /// Build social entity info from perceived entities and the Social component.
@@ -290,6 +319,7 @@ mod tests {
                 y: 50.0,
                 distance: 30.0,
             }],
+            perceived_signals: vec![],
         };
         let e = spawn_bt_entity(&mut world, 20.0, 100.0, default_starter_bt(), perception);
 
@@ -356,6 +386,7 @@ mod tests {
                 is_kin: true,
             }],
             perceived_resources: vec![],
+            perceived_signals: vec![],
         };
         let drives = Drives {
             social_need: 0.7,
@@ -402,6 +433,7 @@ mod tests {
                 is_kin: false,
             }],
             perceived_resources: vec![],
+            perceived_signals: vec![],
         };
         // Give the entity a negative relationship with entity 888.
         let mut social = Social::default();
@@ -589,6 +621,7 @@ mod tests {
                 y: 55.0,
                 distance: 11.0,
             }],
+            perceived_signals: vec![],
         };
 
         let e = spawn_memory_entity(
