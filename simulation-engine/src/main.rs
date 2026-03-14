@@ -3,6 +3,7 @@ use crossbeam_channel::{Receiver, unbounded};
 use tracing::info;
 
 use simulation_engine::core::config::SimulationConfig;
+use simulation_engine::core::perf::PerformanceStats;
 use simulation_engine::core::tick;
 use simulation_engine::core::world::SimulationWorld;
 use simulation_engine::net::bridge;
@@ -59,6 +60,18 @@ struct Cli {
     /// Target tick to replay to (requires --replay)
     #[arg(long)]
     to_tick: Option<u64>,
+
+    /// Show per-system performance statistics every N ticks
+    #[arg(long)]
+    show_perf: bool,
+
+    /// Performance stats logging interval in ticks
+    #[arg(long, default_value_t = 100)]
+    perf_interval: u64,
+
+    /// Maximum number of concurrent WebSocket viewer connections
+    #[arg(long, default_value_t = 8)]
+    max_clients: usize,
 }
 
 fn main() {
@@ -73,6 +86,9 @@ fn main() {
 
     let config = build_config(&cli);
     let port = cli.port;
+    let show_perf = cli.show_perf;
+    let perf_interval = cli.perf_interval;
+    let max_clients = cli.max_clients;
 
     info!(
         seed = config.seed,
@@ -82,6 +98,8 @@ fn main() {
         tick_rate = config.tick_rate,
         headless = config.headless,
         snapshot_interval = config.snapshot_interval,
+        show_perf = show_perf,
+        max_clients = max_clients,
         "starting simulation"
     );
 
@@ -90,7 +108,7 @@ fn main() {
     simulation_engine::core::spawning::spawn_initial_population(&mut world);
 
     let (command_tx, command_rx) = unbounded();
-    let server_state = ServerState::new(command_tx);
+    let server_state = ServerState::new_with_client_limit(command_tx, max_clients);
 
     // Send initial snapshot so early-connecting clients get state.
     bridge::update_snapshot(&world, &server_state);
@@ -106,7 +124,15 @@ fn main() {
         });
     }
 
-    run_loop(&mut world, &server_state, &command_rx);
+    let mut perf_stats = if show_perf {
+        let mut stats = PerformanceStats::new(true);
+        stats.log_interval = perf_interval;
+        Some(stats)
+    } else {
+        None
+    };
+
+    run_loop(&mut world, &server_state, &command_rx, &mut perf_stats);
 }
 
 fn run_replay(snapshot_path: &str, to_tick: Option<u64>) {
@@ -197,7 +223,12 @@ fn config_from_cli(cli: &Cli) -> SimulationConfig {
 /// at requestAnimationFrame rate regardless).
 const MAX_BROADCAST_HZ: f64 = 15.0;
 
-fn run_loop(world: &mut SimulationWorld, server_state: &ServerState, command_rx: &Receiver<ViewerCommand>) {
+fn run_loop(
+    world: &mut SimulationWorld,
+    server_state: &ServerState,
+    command_rx: &Receiver<ViewerCommand>,
+    perf_stats: &mut Option<PerformanceStats>,
+) {
     let base_tick_duration = std::time::Duration::from_secs_f64(1.0 / world.config.tick_rate as f64);
     let min_broadcast_interval = std::time::Duration::from_secs_f64(1.0 / MAX_BROADCAST_HZ);
     let mut last_broadcast = std::time::Instant::now();
@@ -230,7 +261,23 @@ fn run_loop(world: &mut SimulationWorld, server_state: &ServerState, command_rx:
         }
 
         if !world.paused {
-            tick::tick(world);
+            // Read current viewport for LOD computation.
+            let viewport = server_state
+                .viewport
+                .read()
+                .map(|v| *v)
+                .unwrap_or_default();
+
+            tick::tick_with_perf(world, perf_stats, &viewport);
+
+            // Log performance stats periodically if enabled.
+            if let Some(ref stats) = perf_stats {
+                if stats.enabled && stats.tick_timing.count > 0
+                    && world.tick % stats.log_interval == 0
+                {
+                    info!("\n{}", stats.summary());
+                }
+            }
 
             // Throttle broadcasts: only send at most MAX_BROADCAST_HZ per second
             // to avoid overwhelming the viewer at high sim speeds.

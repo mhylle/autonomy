@@ -55,10 +55,18 @@ pub struct ServerState {
     pub command_tx: Sender<ViewerCommand>,
     /// Current viewport bounds from the viewer (single-viewer model).
     pub viewport: Arc<std::sync::RwLock<ViewportBounds>>,
+    /// Maximum number of concurrent WebSocket client connections.
+    pub max_clients: usize,
+    /// Current number of connected clients.
+    pub client_count: Arc<std::sync::atomic::AtomicUsize>,
 }
 
 impl ServerState {
     pub fn new(command_tx: Sender<ViewerCommand>) -> Self {
+        Self::new_with_client_limit(command_tx, 8)
+    }
+
+    pub fn new_with_client_limit(command_tx: Sender<ViewerCommand>, max_clients: usize) -> Self {
         // Small buffer — we want lagged receivers to skip, not accumulate.
         let (tick_tx, _) = broadcast::channel(4);
         Self {
@@ -66,7 +74,25 @@ impl ServerState {
             snapshot: Arc::new(tokio::sync::RwLock::new(Vec::new())),
             command_tx,
             viewport: Arc::new(std::sync::RwLock::new(ViewportBounds::default())),
+            max_clients,
+            client_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         }
+    }
+
+    /// Check if a new client connection is allowed.
+    pub fn can_accept_client(&self) -> bool {
+        let current = self.client_count.load(std::sync::atomic::Ordering::Relaxed);
+        current < self.max_clients
+    }
+
+    /// Increment the client count. Returns the new count.
+    pub fn add_client(&self) -> usize {
+        self.client_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1
+    }
+
+    /// Decrement the client count. Returns the new count.
+    pub fn remove_client(&self) -> usize {
+        self.client_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed).saturating_sub(1)
     }
 }
 
@@ -91,8 +117,18 @@ async fn ws_handler(
 }
 
 async fn handle_connection(socket: WebSocket, state: ServerState) {
+    // Enforce client connection limit.
+    if !state.can_accept_client() {
+        warn!(
+            max = state.max_clients,
+            "rejecting WebSocket client: connection limit reached"
+        );
+        return;
+    }
+
+    let client_num = state.add_client();
     let (mut sender, mut receiver) = socket.split();
-    info!("new WebSocket client connected");
+    info!(clients = client_num, "new WebSocket client connected");
 
     // Send current world snapshot to the newly connected client.
     {
@@ -188,5 +224,6 @@ async fn handle_connection(socket: WebSocket, state: ServerState) {
         _ = recv_task => {},
     }
 
-    info!("WebSocket client disconnected");
+    let remaining = state.remove_client();
+    info!(clients = remaining, "WebSocket client disconnected");
 }

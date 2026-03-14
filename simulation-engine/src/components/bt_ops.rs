@@ -360,6 +360,13 @@ pub fn mutate_parameters(node: &BtNode, mutation_rate: f64, rng: &mut ChaCha8Rng
             signal_type: *signal_type,
             speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
         },
+        // Object nodes (Phase 6.2-6.3): no f64 parameters to mutate.
+        BtNode::NearbyObject => BtNode::NearbyObject,
+        BtNode::HasObject => BtNode::HasObject,
+        BtNode::CanCreateObject => BtNode::CanCreateObject,
+        BtNode::PickUpObject => BtNode::PickUpObject,
+        BtNode::DropObject => BtNode::DropObject,
+        BtNode::CreateObject => BtNode::CreateObject,
     }
 }
 
@@ -465,7 +472,13 @@ fn structural_replace(node: &BtNode, rng: &mut ChaCha8Rng) -> BtNode {
         | BtNode::CompositionAttempt
         | BtNode::EmitSignal { .. }
         | BtNode::DetectSignal { .. }
-        | BtNode::MoveTowardSignal { .. } => random_leaf(rng),
+        | BtNode::MoveTowardSignal { .. }
+        | BtNode::NearbyObject
+        | BtNode::HasObject
+        | BtNode::CanCreateObject
+        | BtNode::PickUpObject
+        | BtNode::DropObject
+        | BtNode::CreateObject => random_leaf(rng),
         // For composite nodes, swap Sequence <-> Selector.
         BtNode::Sequence(children) => BtNode::Selector(children.clone()),
         BtNode::Selector(children) => BtNode::Sequence(children.clone()),
@@ -590,7 +603,13 @@ fn enforce_depth_at(node: &BtNode, current_depth: usize, rng: &mut ChaCha8Rng) -
             | BtNode::CompositionAttempt
             | BtNode::EmitSignal { .. }
             | BtNode::DetectSignal { .. }
-            | BtNode::MoveTowardSignal { .. } => node.clone(),
+            | BtNode::MoveTowardSignal { .. }
+            | BtNode::NearbyObject
+            | BtNode::HasObject
+            | BtNode::CanCreateObject
+            | BtNode::PickUpObject
+            | BtNode::DropObject
+            | BtNode::CreateObject => node.clone(),
             // Otherwise, replace with random leaf.
             _ => random_leaf(rng),
         };
@@ -647,7 +666,9 @@ fn is_valid_recursive(node: &BtNode) -> bool {
         }
         BtNode::Wander { speed } => speed.is_finite() && *speed >= 0.0,
         BtNode::Eat | BtNode::Rest | BtNode::CompositionAttempt
-        | BtNode::EmitSignal { .. } | BtNode::DetectSignal { .. } => true,
+        | BtNode::EmitSignal { .. } | BtNode::DetectSignal { .. }
+        | BtNode::NearbyObject | BtNode::HasObject | BtNode::CanCreateObject
+        | BtNode::PickUpObject | BtNode::DropObject | BtNode::CreateObject => true,
         BtNode::NearbyEntity { range } => range.is_finite() && *range >= 0.0,
         BtNode::Attack { force_factor } => force_factor.is_finite() && *force_factor >= 0.0,
         BtNode::RecallMemory { max_age, .. } => *max_age > 0,

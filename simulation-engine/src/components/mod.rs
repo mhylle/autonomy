@@ -11,6 +11,7 @@ pub mod physical;
 pub mod social;
 pub mod spatial;
 pub mod tribe;
+pub mod world_object;
 
 pub use action::Action;
 pub use behavior_tree::BtNode;
@@ -27,3 +28,4 @@ pub use physical::{Age, Energy, Health, Size};
 pub use social::Social;
 pub use spatial::{Position, Velocity};
 pub use tribe::TribeId;
+pub use world_object::{Blueprint, Inventory, WorldObject};

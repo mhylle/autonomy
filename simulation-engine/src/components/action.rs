@@ -26,6 +26,12 @@ pub enum Action {
     EmitSignal { signal_type: u8 },
     /// Move toward a perceived signal source.
     MoveTowardSignal { x: f64, y: f64, speed: f64 },
+    /// Pick up a nearby world object.
+    PickUp { object_id: u64 },
+    /// Drop a held world object at the entity's current position.
+    Drop { object_id: u64 },
+    /// Create a new object using the entity's blueprint (consumes energy).
+    CreateObject,
     /// No action this tick.
     None,
 }
@@ -58,6 +64,9 @@ mod tests {
             Action::CompositionAttempt,
             Action::EmitSignal { signal_type: 1 },
             Action::MoveTowardSignal { x: 30.0, y: 40.0, speed: 2.0 },
+            Action::PickUp { object_id: 7 },
+            Action::Drop { object_id: 7 },
+            Action::CreateObject,
             Action::None,
         ];
         for action in &actions {

@@ -1,14 +1,19 @@
 use hecs::World;
 
 use super::config::SimulationConfig;
+use super::lod::LodLevel;
 use super::rng::SimulationRng;
 use crate::components::tribe::Tribe;
+use crate::components::world_object::WorldObject;
 use crate::environment::climate::Climate;
 use crate::environment::resources::Resource;
 use crate::environment::signals::Signal;
 use crate::environment::spatial_index::SpatialIndex;
+use crate::environment::structures::{ConstructionSite, Farm, Storage, Structure};
 use crate::environment::terrain::TerrainGrid;
 use crate::events::EventLog;
+use crate::narrative::NarrativeTracker;
+use crate::systems::settlement::CivilizationState;
 
 /// Wraps `hecs::World` with simulation metadata.
 ///
@@ -40,6 +45,27 @@ pub struct SimulationWorld {
     pub tribes: std::collections::HashMap<u64, Tribe>,
     /// Next unique tribe ID to assign.
     pub next_tribe_id: u64,
+    /// World objects that can be picked up, dropped, and used as tools.
+    pub objects: Vec<WorldObject>,
+    /// Next unique object ID to assign.
+    pub next_object_id: u64,
+    /// Per-entity LOD assignments, keyed by entity id bits.
+    /// Computed each tick by `tick_with_perf` based on viewport distance.
+    pub lod_assignments: std::collections::HashMap<u64, LodLevel>,
+    /// Completed structures in the world (walls, shelters, storage buildings).
+    pub structures: Vec<Structure>,
+    /// Active construction sites (in-progress builds).
+    pub construction_sites: Vec<ConstructionSite>,
+    /// Planted farms/crops growing over time.
+    pub farms: Vec<Farm>,
+    /// Storage containers associated with StorageBuilding structures.
+    pub storages: Vec<Storage>,
+    /// Next unique structure/construction-site/farm ID.
+    pub next_structure_id: u64,
+    /// Narrative tracking system (observer-only, never modifies simulation).
+    pub narrative_tracker: NarrativeTracker,
+    /// Era 9: Civilization analysis state (settlements, trade, hierarchy, culture).
+    pub civilization: CivilizationState,
 }
 
 impl SimulationWorld {
@@ -69,6 +95,16 @@ impl SimulationWorld {
             signals: Vec::new(),
             tribes: std::collections::HashMap::new(),
             next_tribe_id: 1,
+            objects: Vec::new(),
+            next_object_id: 1,
+            lod_assignments: std::collections::HashMap::new(),
+            structures: Vec::new(),
+            construction_sites: Vec::new(),
+            farms: Vec::new(),
+            storages: Vec::new(),
+            next_structure_id: 1,
+            narrative_tracker: NarrativeTracker::new(),
+            civilization: CivilizationState::new(),
         }
     }
 

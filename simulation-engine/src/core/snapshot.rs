@@ -147,6 +147,16 @@ pub fn restore(snap: SerializableWorld) -> SimulationWorld {
         signals: Vec::new(),
         tribes: std::collections::HashMap::new(),
         next_tribe_id: 1,
+        objects: Vec::new(),
+        next_object_id: 1,
+        lod_assignments: std::collections::HashMap::new(),
+        structures: Vec::new(),
+        construction_sites: Vec::new(),
+        farms: Vec::new(),
+        storages: Vec::new(),
+        next_structure_id: 1,
+        narrative_tracker: crate::narrative::NarrativeTracker::new(),
+        civilization: crate::systems::settlement::CivilizationState::new(),
     };
 
     for ent in snap.entities {

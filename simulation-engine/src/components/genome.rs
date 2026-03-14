@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::drives::DriveWeights;
 use super::memory::EvictionWeights;
+use super::world_object::Blueprint;
 
 /// Genome containing evolvable physical and cognitive traits.
 ///
@@ -30,6 +31,8 @@ pub struct Genome {
     /// Affinity for joining or forming composite organisms (0.0-1.0).
     /// Higher values make the entity more willing to merge with compatible neighbours.
     pub composition_affinity: f64,
+    /// Blueprint defining what kind of tools this entity can create (Phase 6.3).
+    pub blueprint: Blueprint,
     /// Hash for species grouping -- recomputed when genome changes
     pub species_id: u64,
 }
@@ -48,6 +51,7 @@ impl Default for Genome {
             memory_capacity: 20,
             eviction_weights: EvictionWeights::default(),
             composition_affinity: 0.1,
+            blueprint: Blueprint::default(),
             species_id: 0,
         };
         g.species_id = compute_species_id(&g);
@@ -164,6 +168,29 @@ pub fn mutate(genome: &Genome, rng: &mut ChaCha8Rng) -> Genome {
         child.composition_affinity = (child.composition_affinity + noise).clamp(0.0, 1.0);
     }
 
+    // Blueprint: mutate output properties, clamped to 0.0..1.0.
+    let mut mutate_bp = |value: f64| -> f64 {
+        if rng.gen::<f64>() < genome.mutation_rate {
+            let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1;
+            (value + noise).clamp(0.0, 1.0)
+        } else {
+            value
+        }
+    };
+    child.blueprint.output_sharpness = mutate_bp(child.blueprint.output_sharpness);
+    child.blueprint.output_hardness = mutate_bp(child.blueprint.output_hardness);
+    child.blueprint.output_weight = mutate_bp(child.blueprint.output_weight);
+    child.blueprint.hardness_preference = mutate_bp(child.blueprint.hardness_preference);
+    // Energy cost and durability mutate with a broader range.
+    if rng.gen::<f64>() < genome.mutation_rate {
+        let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1 * child.blueprint.energy_cost;
+        child.blueprint.energy_cost = (child.blueprint.energy_cost + noise).max(5.0);
+    }
+    if rng.gen::<f64>() < genome.mutation_rate {
+        let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1 * child.blueprint.output_durability;
+        child.blueprint.output_durability = (child.blueprint.output_durability + noise).max(5.0);
+    }
+
     child.species_id = compute_species_id(&child);
     child
 }
@@ -227,6 +254,7 @@ mod tests {
             memory_capacity: 1,
             eviction_weights: EvictionWeights::default(),
             composition_affinity: 0.1,
+            blueprint: Blueprint::default(),
             species_id: 0,
         };
         let mut rng = ChaCha8Rng::seed_from_u64(99);

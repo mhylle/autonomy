@@ -4,11 +4,13 @@ use crate::components::behavior_tree::{
     SocialEntityInfo,
 };
 use crate::components::drives::Drives;
+use crate::components::genome::Genome;
 use crate::components::memory::{Memory, MemoryKind};
 use crate::components::perception::Perception;
 use crate::components::physical::Energy;
 use crate::components::social::Social;
 use crate::components::spatial::Position;
+use crate::components::world_object::Inventory;
 use crate::core::world::SimulationWorld;
 
 /// Ticks each entity's behavior tree and produces an `Action` component.
@@ -77,6 +79,23 @@ pub fn run(world: &mut SimulationWorld) {
                 current_tick,
                 memory_entries,
                 perceived_signals: build_signal_context(perception),
+                has_nearby_object: perception.closest_object().is_some(),
+                nearest_object_id: perception.closest_object().map(|o| o.object_id),
+                has_object_in_inventory: world
+                    .ecs
+                    .get::<&Inventory>(entity)
+                    .map(|inv| !inv.items.is_empty())
+                    .unwrap_or(false),
+                first_inventory_item: world
+                    .ecs
+                    .get::<&Inventory>(entity)
+                    .ok()
+                    .and_then(|inv| inv.items.first().copied()),
+                can_create_object: world
+                    .ecs
+                    .get::<&Genome>(entity)
+                    .map(|g| energy.current >= g.blueprint.energy_cost)
+                    .unwrap_or(false),
             };
 
             let (_status, bt_action) = tick_bt(bt, &ctx);
@@ -161,6 +180,9 @@ pub fn run(world: &mut SimulationWorld) {
                         speed: speed_factor * 2.0,
                     }
                 }
+                BtAction::PickUp { object_id } => Action::PickUp { object_id },
+                BtAction::Drop { object_id } => Action::Drop { object_id },
+                BtAction::CreateObject => Action::CreateObject,
                 BtAction::None => Action::None,
             };
 
@@ -320,6 +342,7 @@ mod tests {
                 distance: 30.0,
             }],
             perceived_signals: vec![],
+            perceived_objects: vec![],
         };
         let e = spawn_bt_entity(&mut world, 20.0, 100.0, default_starter_bt(), perception);
 
@@ -387,6 +410,7 @@ mod tests {
             }],
             perceived_resources: vec![],
             perceived_signals: vec![],
+            perceived_objects: vec![],
         };
         let drives = Drives {
             social_need: 0.7,
@@ -434,6 +458,7 @@ mod tests {
             }],
             perceived_resources: vec![],
             perceived_signals: vec![],
+            perceived_objects: vec![],
         };
         // Give the entity a negative relationship with entity 888.
         let mut social = Social::default();
@@ -622,6 +647,7 @@ mod tests {
                 distance: 11.0,
             }],
             perceived_signals: vec![],
+            perceived_objects: vec![],
         };
 
         let e = spawn_memory_entity(

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::world_object::PerceivedObject;
+
 /// A nearby entity as perceived by this entity's sensors.
 ///
 /// Energy estimates are imperfect -- noise increases with distance.
@@ -58,6 +60,8 @@ pub struct Perception {
     pub perceived_entities: Vec<PerceivedEntity>,
     pub perceived_resources: Vec<PerceivedResource>,
     pub perceived_signals: Vec<PerceivedSignal>,
+    /// Nearby world objects on the ground (Phase 6.2).
+    pub perceived_objects: Vec<PerceivedObject>,
 }
 
 impl Perception {
@@ -66,6 +70,7 @@ impl Perception {
         self.perceived_entities.clear();
         self.perceived_resources.clear();
         self.perceived_signals.clear();
+        self.perceived_objects.clear();
     }
 
     /// The closest perceived resource, if any.
@@ -88,6 +93,13 @@ impl Perception {
             .iter()
             .filter(|s| s.signal_type == signal_type)
             .max_by(|a, b| a.strength.partial_cmp(&b.strength).unwrap())
+    }
+
+    /// The closest perceived world object on the ground, if any.
+    pub fn closest_object(&self) -> Option<&PerceivedObject> {
+        self.perceived_objects
+            .iter()
+            .min_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap())
     }
 
     /// Whether any signal of the given type is perceived.
@@ -136,6 +148,7 @@ mod tests {
                 source_x: 35.0,
                 source_y: 40.0,
             }],
+            perceived_objects: vec![],
         };
 
         p.clear();

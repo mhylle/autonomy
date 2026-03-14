@@ -69,7 +69,8 @@ pub fn run(world: &mut SimulationWorld) {
                     }
                 }
                 Action::Rest | Action::Eat | Action::None | Action::Attack { .. }
-                | Action::CompositionAttempt | Action::EmitSignal { .. } => (0.0, 0.0),
+                | Action::CompositionAttempt | Action::EmitSignal { .. }
+                | Action::PickUp { .. } | Action::Drop { .. } | Action::CreateObject => (0.0, 0.0),
             };
             (entity, dx, dy)
         })

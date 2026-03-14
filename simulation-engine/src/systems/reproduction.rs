@@ -240,6 +240,7 @@ fn crossover_genomes(
             variety_weight: if rng.gen::<bool>() { a.eviction_weights.variety_weight } else { b.eviction_weights.variety_weight },
         },
         composition_affinity: if rng.gen::<bool>() { a.composition_affinity } else { b.composition_affinity },
+        blueprint: if rng.gen::<bool>() { a.blueprint.clone() } else { b.blueprint.clone() },
         species_id: 0,
     };
     g.species_id = compute_species_id(&g);

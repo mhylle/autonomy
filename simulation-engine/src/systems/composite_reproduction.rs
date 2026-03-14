@@ -410,6 +410,7 @@ fn blend_leader_with_members(
                 .collect::<Vec<_>>(),
         )
         .clamp(0.0, 1.0),
+        blueprint: leader.blueprint.clone(),
         species_id: 0,
     };
 

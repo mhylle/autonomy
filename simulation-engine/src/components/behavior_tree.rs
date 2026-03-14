@@ -121,6 +121,12 @@ pub enum BtAction {
     EmitSignal { signal_type: u8 },
     /// Move toward a perceived signal source (Phase 5.2).
     MoveTowardSignal { x: f64, y: f64, speed_factor: f64 },
+    /// Pick up the nearest perceived object on the ground (Phase 6.2).
+    PickUp { object_id: u64 },
+    /// Drop an object from inventory (Phase 6.2).
+    Drop { object_id: u64 },
+    /// Create a new object using the entity's blueprint (Phase 6.3).
+    CreateObject,
     /// No action.
     None,
 }
@@ -172,6 +178,18 @@ pub struct BtContext {
     // -- Signal integration fields (Phase 5.2) --
     /// Perceived signals available for BT condition/action nodes.
     pub perceived_signals: Vec<PerceivedSignalInfo>,
+
+    // -- Object system fields (Phase 6.2) --
+    /// Whether there is a nearby object on the ground within pickup range.
+    pub has_nearby_object: bool,
+    /// ID of the nearest object on the ground, if any.
+    pub nearest_object_id: Option<u64>,
+    /// Whether the entity has any objects in inventory.
+    pub has_object_in_inventory: bool,
+    /// ID of the first object in inventory (for drop action), if any.
+    pub first_inventory_item: Option<u64>,
+    /// Whether the entity has enough energy to create an object via blueprint.
+    pub can_create_object: bool,
 }
 
 /// Lightweight snapshot of a perceived signal for BT evaluation.
@@ -372,6 +390,22 @@ pub enum BtNode {
     EmitSignal { signal_type: u8 },
     /// Move toward the strongest perceived signal of a given type.
     MoveTowardSignal { signal_type: u8, speed_factor: f64 },
+
+    // -- Condition nodes (objects, Phase 6.2) --
+    /// Check if there is a nearby object on the ground.
+    NearbyObject,
+    /// Check if the entity has any object in its inventory.
+    HasObject,
+    /// Check if the entity can create an object (has enough energy).
+    CanCreateObject,
+
+    // -- Action nodes (objects, Phase 6.2-6.3) --
+    /// Pick up the nearest nearby object.
+    PickUpObject,
+    /// Drop the first object from inventory.
+    DropObject,
+    /// Create a new object using the entity's blueprint.
+    CreateObject,
 }
 
 /// Recursively evaluate a behavior tree node given a context.
@@ -627,6 +661,56 @@ pub fn tick_bt(node: &BtNode, ctx: &BtContext) -> (BtStatus, BtAction) {
                 (BtStatus::Failure, BtAction::None)
             }
         }
+
+        // Object condition nodes (Phase 6.2)
+        BtNode::NearbyObject => {
+            if ctx.has_nearby_object {
+                (BtStatus::Success, BtAction::None)
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        BtNode::HasObject => {
+            if ctx.has_object_in_inventory {
+                (BtStatus::Success, BtAction::None)
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        BtNode::CanCreateObject => {
+            if ctx.can_create_object {
+                (BtStatus::Success, BtAction::None)
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        // Object action nodes (Phase 6.2-6.3)
+        BtNode::PickUpObject => {
+            if let Some(obj_id) = ctx.nearest_object_id {
+                (BtStatus::Success, BtAction::PickUp { object_id: obj_id })
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        BtNode::DropObject => {
+            if let Some(item_id) = ctx.first_inventory_item {
+                (BtStatus::Success, BtAction::Drop { object_id: item_id })
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
+
+        BtNode::CreateObject => {
+            if ctx.can_create_object {
+                (BtStatus::Success, BtAction::CreateObject)
+            } else {
+                (BtStatus::Failure, BtAction::None)
+            }
+        }
     }
 }
 
@@ -810,6 +894,11 @@ mod tests {
             current_tick: 100,
             memory_entries: vec![],
             perceived_signals: vec![],
+            has_nearby_object: false,
+            nearest_object_id: None,
+            has_object_in_inventory: false,
+            first_inventory_item: None,
+            can_create_object: false,
         }
     }
 
@@ -835,6 +924,11 @@ mod tests {
             current_tick: 100,
             memory_entries: vec![],
             perceived_signals: vec![],
+            has_nearby_object: false,
+            nearest_object_id: None,
+            has_object_in_inventory: false,
+            first_inventory_item: None,
+            can_create_object: false,
         }
     }
 
@@ -1100,6 +1194,11 @@ mod tests {
                 emotional_valence: 0.5,
             }],
             perceived_signals: vec![],
+            has_nearby_object: false,
+            nearest_object_id: None,
+            has_object_in_inventory: false,
+            first_inventory_item: None,
+            can_create_object: false,
         }
     }
 
@@ -1131,6 +1230,11 @@ mod tests {
                 emotional_valence: -0.9,
             }],
             perceived_signals: vec![],
+            has_nearby_object: false,
+            nearest_object_id: None,
+            has_object_in_inventory: false,
+            first_inventory_item: None,
+            can_create_object: false,
         }
     }
 
@@ -1369,6 +1473,11 @@ mod tests {
             current_tick: 100,
             memory_entries: vec![],
             perceived_signals: vec![],
+            has_nearby_object: false,
+            nearest_object_id: None,
+            has_object_in_inventory: false,
+            first_inventory_item: None,
+            can_create_object: false,
         }
     }
 
