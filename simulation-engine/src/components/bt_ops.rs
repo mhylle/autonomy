@@ -6,7 +6,7 @@
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
-use super::behavior_tree::{BtNode, Comparison, DriveKind, depth, node_count};
+use super::behavior_tree::{BtNode, Comparison, DriveKind, MemoryKindFilter, depth, node_count};
 
 /// Maximum allowed tree depth. Trees exceeding this are rejected or pruned.
 pub const MAX_DEPTH: usize = 8;
@@ -121,9 +121,17 @@ const ALL_COMPARISONS: [Comparison; 4] = [
     Comparison::LessOrEqual,
 ];
 
+/// All `MemoryKindFilter` variants for random selection.
+const ALL_MEMORY_FILTERS: [MemoryKindFilter; 4] = [
+    MemoryKindFilter::AnyFood,
+    MemoryKindFilter::AnyThreat,
+    MemoryKindFilter::AnyPositive,
+    MemoryKindFilter::AnyNegative,
+];
+
 /// Generate a random leaf node (condition or action).
 fn random_leaf(rng: &mut ChaCha8Rng) -> BtNode {
-    match rng.gen_range(0..7) {
+    match rng.gen_range(0..11) {
         0 => BtNode::CheckDrive {
             drive: ALL_DRIVES[rng.gen_range(0..ALL_DRIVES.len())],
             threshold: rng.gen_range(0.1..0.9),
@@ -143,7 +151,22 @@ fn random_leaf(rng: &mut ChaCha8Rng) -> BtNode {
             speed: rng.gen_range(0.5..4.0),
         },
         5 => BtNode::Eat,
-        _ => BtNode::Rest,
+        6 => BtNode::Rest,
+        // Memory-related nodes (Phase 3.3)
+        7 => BtNode::RecallMemory {
+            kind: ALL_MEMORY_FILTERS[rng.gen_range(0..ALL_MEMORY_FILTERS.len())].clone(),
+            max_age: rng.gen_range(50..1000),
+        },
+        8 => BtNode::MoveTowardMemory {
+            kind: ALL_MEMORY_FILTERS[rng.gen_range(0..ALL_MEMORY_FILTERS.len())].clone(),
+            speed_factor: rng.gen_range(0.5..3.0),
+        },
+        9 => BtNode::FleeFromMemory {
+            kind: ALL_MEMORY_FILTERS[rng.gen_range(0..ALL_MEMORY_FILTERS.len())].clone(),
+            speed_factor: rng.gen_range(0.5..3.0),
+        },
+        // Composition (Phase 4.1)
+        _ => BtNode::CompositionAttempt,
     }
 }
 
@@ -285,6 +308,37 @@ pub fn mutate_parameters(node: &BtNode, mutation_rate: f64, rng: &mut ChaCha8Rng
         },
         BtNode::Eat => BtNode::Eat,
         BtNode::Rest => BtNode::Rest,
+        BtNode::NearbyEntity { range } => BtNode::NearbyEntity {
+            range: maybe_perturb(*range, 1.0, 200.0, mutation_rate, rng),
+        },
+        BtNode::Attack { force_factor } => BtNode::Attack {
+            force_factor: maybe_perturb(*force_factor, 0.1, 5.0, mutation_rate, rng),
+        },
+        BtNode::RecallMemory { kind, max_age } => BtNode::RecallMemory {
+            kind: kind.clone(),
+            max_age: *max_age,
+        },
+        BtNode::MoveTowardMemory { kind, speed_factor } => BtNode::MoveTowardMemory {
+            kind: kind.clone(),
+            speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
+        },
+        BtNode::FleeFromMemory { kind, speed_factor } => BtNode::FleeFromMemory {
+            kind: kind.clone(),
+            speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
+        },
+        BtNode::NearbyEntityFiltered { range, filter } => BtNode::NearbyEntityFiltered {
+            range: maybe_perturb(*range, 1.0, 200.0, mutation_rate, rng),
+            filter: filter.clone(),
+        },
+        BtNode::MoveTowardEntity { filter, speed_factor } => BtNode::MoveTowardEntity {
+            filter: filter.clone(),
+            speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
+        },
+        BtNode::FleeFromEntity { filter, speed_factor } => BtNode::FleeFromEntity {
+            filter: filter.clone(),
+            speed_factor: maybe_perturb(*speed_factor, 0.1, 5.0, mutation_rate, rng),
+        },
+        BtNode::CompositionAttempt => BtNode::CompositionAttempt,
     }
 }
 
@@ -378,7 +432,16 @@ fn structural_replace(node: &BtNode, rng: &mut ChaCha8Rng) -> BtNode {
         | BtNode::MoveTowardResource { .. }
         | BtNode::Wander { .. }
         | BtNode::Eat
-        | BtNode::Rest => random_leaf(rng),
+        | BtNode::Rest
+        | BtNode::NearbyEntity { .. }
+        | BtNode::Attack { .. }
+        | BtNode::RecallMemory { .. }
+        | BtNode::MoveTowardMemory { .. }
+        | BtNode::FleeFromMemory { .. }
+        | BtNode::NearbyEntityFiltered { .. }
+        | BtNode::MoveTowardEntity { .. }
+        | BtNode::FleeFromEntity { .. }
+        | BtNode::CompositionAttempt => random_leaf(rng),
         // For composite nodes, swap Sequence <-> Selector.
         BtNode::Sequence(children) => BtNode::Selector(children.clone()),
         BtNode::Selector(children) => BtNode::Sequence(children.clone()),
@@ -491,7 +554,16 @@ fn enforce_depth_at(node: &BtNode, current_depth: usize, rng: &mut ChaCha8Rng) -
             | BtNode::MoveTowardResource { .. }
             | BtNode::Wander { .. }
             | BtNode::Eat
-            | BtNode::Rest => node.clone(),
+            | BtNode::Rest
+            | BtNode::NearbyEntity { .. }
+            | BtNode::Attack { .. }
+            | BtNode::RecallMemory { .. }
+            | BtNode::MoveTowardMemory { .. }
+            | BtNode::FleeFromMemory { .. }
+            | BtNode::NearbyEntityFiltered { .. }
+            | BtNode::MoveTowardEntity { .. }
+            | BtNode::FleeFromEntity { .. }
+            | BtNode::CompositionAttempt => node.clone(),
             // Otherwise, replace with random leaf.
             _ => random_leaf(rng),
         };
@@ -547,7 +619,23 @@ fn is_valid_recursive(node: &BtNode) -> bool {
             speed_factor.is_finite() && *speed_factor >= 0.0
         }
         BtNode::Wander { speed } => speed.is_finite() && *speed >= 0.0,
-        BtNode::Eat | BtNode::Rest => true,
+        BtNode::Eat | BtNode::Rest | BtNode::CompositionAttempt => true,
+        BtNode::NearbyEntity { range } => range.is_finite() && *range >= 0.0,
+        BtNode::Attack { force_factor } => force_factor.is_finite() && *force_factor >= 0.0,
+        BtNode::RecallMemory { max_age, .. } => *max_age > 0,
+        BtNode::MoveTowardMemory { speed_factor, .. } => {
+            speed_factor.is_finite() && *speed_factor >= 0.0
+        }
+        BtNode::FleeFromMemory { speed_factor, .. } => {
+            speed_factor.is_finite() && *speed_factor >= 0.0
+        }
+        BtNode::NearbyEntityFiltered { range, .. } => range.is_finite() && *range >= 0.0,
+        BtNode::MoveTowardEntity { speed_factor, .. } => {
+            speed_factor.is_finite() && *speed_factor >= 0.0
+        }
+        BtNode::FleeFromEntity { speed_factor, .. } => {
+            speed_factor.is_finite() && *speed_factor >= 0.0
+        }
     }
 }
 

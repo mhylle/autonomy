@@ -286,6 +286,120 @@ html, body, #root {
   border-radius: 4px;
 }
 
+/* ---- Memory Inspector (Phase 3.3) ---- */
+.memory-inspector {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.memory-placeholder-notice {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.memory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.memory-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+
+.memory-item:last-child {
+  border-bottom: none;
+}
+
+.memory-item-disabled {
+  opacity: 0.4;
+}
+
+.memory-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.memory-label {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.memory-count {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  min-width: 24px;
+  text-align: right;
+}
+
+/* ---- Lineage View (Phase 3.5) ---- */
+.lineage-view {
+  padding: 8px 0;
+}
+
+.lineage-chain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.lineage-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.lineage-node {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.lineage-node-ancestor {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.lineage-node-current {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  font-weight: 600;
+}
+
+.lineage-arrow {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.lineage-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* ---- Relationship View (Phase 3.5) ---- */
+.relationship-canvas {
+  display: block;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
 /* ---- Minimap ---- */
 .minimap {
   position: absolute;

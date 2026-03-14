@@ -26,6 +26,11 @@ pub struct SimulationWorld {
     pub speed_multiplier: f64,
     /// (tick, species_id -> population count) recorded periodically.
     pub species_history: Vec<(u64, std::collections::HashMap<u64, u32>)>,
+    /// Species interaction kill matrix: (attacker_species, victim_species) -> kill count.
+    ///
+    /// Tracks how many times members of one species killed members of another,
+    /// enabling analysis of predator-prey dynamics and coevolutionary arms races.
+    pub kill_matrix: std::collections::HashMap<(u64, u64), u32>,
 }
 
 impl SimulationWorld {
@@ -51,6 +56,7 @@ impl SimulationWorld {
             paused: false,
             speed_multiplier: 1.0,
             species_history: Vec::new(),
+            kill_matrix: std::collections::HashMap::new(),
         }
     }
 

@@ -3,6 +3,16 @@ import type { EntityState, ResourceState, TerrainGrid, WorldSnapshot, TickDelta 
 import { recordHistorySample } from './history';
 
 /**
+ * A kill event records where an entity died, used for rendering
+ * transient death indicators on the canvas.
+ */
+export interface KillEvent {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+/**
  * World data lives OUTSIDE React/Zustand to avoid GC pressure.
  *
  * The entities and resources Maps are mutated in place — no copies.
@@ -15,6 +25,8 @@ export const worldData = {
   worldWidth: 500,
   worldHeight: 500,
   terrain: null as TerrainGrid | null,
+  /** Recent kill events for rendering death indicators. */
+  killEvents: [] as KillEvent[],
 };
 
 export function applySnapshotToWorld(snapshot: WorldSnapshot): void {
@@ -42,9 +54,33 @@ export function applyDeltaToWorld(delta: TickDelta): void {
   for (const entity of delta.updated) {
     worldData.entities.set(entity.id, entity);
   }
+
+  // Record kill events before removing entities so we can capture
+  // their last known position for death indicators.
+  const now = performance.now();
   for (const id of delta.died) {
+    const entity = worldData.entities.get(id);
+    if (entity) {
+      worldData.killEvents.push({
+        x: entity.position.x,
+        y: entity.position.y,
+        timestamp: now,
+      });
+    }
     worldData.entities.delete(id);
   }
+
+  // Prune old kill events (older than 2 seconds)
+  const cutoff = now - 2000;
+  if (worldData.killEvents.length > 0 && worldData.killEvents[0].timestamp < cutoff) {
+    const firstValid = worldData.killEvents.findIndex((e) => e.timestamp >= cutoff);
+    if (firstValid === -1) {
+      worldData.killEvents.length = 0;
+    } else {
+      worldData.killEvents.splice(0, firstValid);
+    }
+  }
+
   for (const resource of delta.resourceChanges) {
     worldData.resources.set(resource.id, resource);
   }

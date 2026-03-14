@@ -45,7 +45,20 @@ pub fn run(world: &mut SimulationWorld) {
                     let angle: f64 = rng.gen_range(0.0..TAU);
                     (angle.cos() * speed, angle.sin() * speed)
                 }
-                Action::Rest | Action::Eat | Action::None => (0.0, 0.0),
+                Action::FleeFrom { x, y, speed } => {
+                    // Move AWAY from the target position.
+                    let dx = pos.x - x;
+                    let dy = pos.y - y;
+                    let dist = (dx * dx + dy * dy).sqrt();
+                    if dist > 0.01 {
+                        (dx / dist * speed, dy / dist * speed)
+                    } else {
+                        // If exactly on top of the target, pick a random direction.
+                        let angle: f64 = rng.gen_range(0.0..TAU);
+                        (angle.cos() * speed, angle.sin() * speed)
+                    }
+                }
+                Action::Rest | Action::Eat | Action::None | Action::Attack { .. } | Action::CompositionAttempt => (0.0, 0.0),
             };
             (entity, dx, dy)
         })
@@ -172,6 +185,28 @@ mod tests {
         for (_id, vel) in world.ecs.query_mut::<&Velocity>() {
             let speed = (vel.dx * vel.dx + vel.dy * vel.dy).sqrt();
             assert!(speed >= 1.0 && speed <= 2.0);
+        }
+    }
+
+    #[test]
+    fn flee_from_sets_velocity_away_from_target() {
+        let mut world = test_world();
+        world.ecs.spawn((
+            Position { x: 50.0, y: 50.0 },
+            Velocity::default(),
+            Action::FleeFrom {
+                x: 80.0,
+                y: 50.0,
+                speed: 2.0,
+            },
+        ));
+
+        run(&mut world);
+
+        for (_id, vel) in world.ecs.query_mut::<&Velocity>() {
+            // Should move LEFT (away from 80,50)
+            assert!(vel.dx < -1.9, "should move left (away from target), got dx={}", vel.dx);
+            assert!(vel.dy.abs() < 0.01, "dy should be ~0, got {}", vel.dy);
         }
     }
 

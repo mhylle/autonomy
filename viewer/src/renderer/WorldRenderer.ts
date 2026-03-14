@@ -182,11 +182,50 @@ export class WorldRenderer {
       this.entityHitTargets.push({ id, x: entity.position.x, y: entity.position.y, r: radius });
     }
 
+    // Draw kill indicators (Phase 3.7)
+    this.drawKillIndicators(ctx);
+
     ctx.globalAlpha = 1;
     ctx.restore();
 
     // Draw minimap
     this.minimapRenderer.draw(worldWidth, worldHeight, entities, this.terrainRenderer);
+  }
+
+  /**
+   * Draw fading red X marks at positions where entities recently died.
+   * Kill events fade out over 1.5 seconds.
+   */
+  private drawKillIndicators(ctx: CanvasRenderingContext2D): void {
+    const events = worldData.killEvents;
+    if (events.length === 0) return;
+
+    const now = performance.now();
+    const fadeMs = 1500; // duration of the fade effect
+    const xSize = 6 / this.zoom; // X mark arm length, constant screen size
+
+    ctx.lineCap = 'round';
+
+    for (const event of events) {
+      const age = now - event.timestamp;
+      if (age > fadeMs) continue;
+
+      const alpha = 1 - age / fadeMs;
+      // Scale slightly larger at start, shrinking as it fades
+      const scale = 1 + (1 - alpha) * 0.5;
+      const armLen = xSize * scale;
+
+      ctx.strokeStyle = `rgba(239, 68, 68, ${alpha})`;
+      ctx.lineWidth = Math.max(2 / this.zoom, 1);
+
+      // Draw X
+      ctx.beginPath();
+      ctx.moveTo(event.x - armLen, event.y - armLen);
+      ctx.lineTo(event.x + armLen, event.y + armLen);
+      ctx.moveTo(event.x + armLen, event.y - armLen);
+      ctx.lineTo(event.x - armLen, event.y + armLen);
+      ctx.stroke();
+    }
   }
 
   private getSpeciesColor(speciesId: number): string {

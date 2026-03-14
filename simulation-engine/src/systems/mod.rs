@@ -1,8 +1,12 @@
 pub mod aging;
 pub mod cleanup;
+pub mod combat;
+pub mod composite_reproduction;
+pub mod composition;
 pub mod decision;
 pub mod drives;
 pub mod feeding;
+pub mod memory;
 pub mod movement;
 pub mod perception;
 pub mod reproduction;

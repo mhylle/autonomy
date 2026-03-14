@@ -1,5 +1,8 @@
 import type { EntityState } from '../net/protocol.ts';
 import { useHudStore } from '../net/state-store.ts';
+import { RelationshipView } from './RelationshipView.tsx';
+import { LineageView } from './LineageView.tsx';
+import { MemoryInspector } from './MemoryInspector.tsx';
 
 interface EntityPanelProps {
   entity: EntityState;
@@ -7,7 +10,8 @@ interface EntityPanelProps {
 
 /**
  * Bottom panel showing details for the selected entity.
- * Displays drives, energy, age, species info, and a BT placeholder.
+ * Displays drives, energy, age, species info, memory, lineage,
+ * relationship graph, and a BT placeholder.
  */
 export function EntityPanel({ entity }: EntityPanelProps) {
   const close = () => useHudStore.getState().selectEntity(null);
@@ -48,6 +52,15 @@ export function EntityPanel({ entity }: EntityPanelProps) {
             <span className="stat-value">{entity.generation}</span>
           </div>
         </div>
+
+        {/* Memory Inspector (Phase 3.3) */}
+        <MemoryInspector />
+
+        {/* Lineage Tree (Phase 3.5) */}
+        <LineageView entity={entity} />
+
+        {/* Relationship Graph (Phase 3.5) */}
+        <RelationshipView entity={entity} />
 
         {/* BT Visualizer Placeholder */}
         <div className="entity-stats-group">

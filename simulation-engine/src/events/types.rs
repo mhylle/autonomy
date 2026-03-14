@@ -46,13 +46,40 @@ pub enum SimEvent {
         y: f64,
         new_amount: f64,
     },
+    EntityAttacked {
+        attacker_id: u64,
+        target_id: u64,
+        damage: f64,
+        target_health_remaining: f64,
+    },
+    CompositeReproduced {
+        parent_id: u64,
+        offspring_id: u64,
+        member_count: usize,
+        x: f64,
+        y: f64,
+    },
+    /// Two entities merged to form a composite organism.
+    CompositeFormed {
+        leader_id: u64,
+        member_id: u64,
+        x: f64,
+        y: f64,
+    },
+    /// A composite organism decomposed (fully or partially).
+    CompositeDecomposed {
+        leader_id: u64,
+        released_member_ids: Vec<u64>,
+        x: f64,
+        y: f64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DeathCause {
     Starvation,
     OldAge,
-    // Combat (Phase 3.6+)
+    Combat { killer_id: u64 },
 }
 
 #[cfg(test)]
@@ -156,6 +183,47 @@ mod tests {
             x: 30.0,
             y: 40.0,
             new_amount: 100.0,
+        });
+    }
+
+    #[test]
+    fn roundtrip_entity_attacked() {
+        roundtrip(&SimEvent::EntityAttacked {
+            attacker_id: 1,
+            target_id: 2,
+            damage: 25.0,
+            target_health_remaining: 75.0,
+        });
+    }
+
+    #[test]
+    fn roundtrip_entity_died_combat() {
+        roundtrip(&SimEvent::EntityDied {
+            entity_id: 2,
+            x: 10.0,
+            y: 20.0,
+            age: 50,
+            cause: DeathCause::Combat { killer_id: 1 },
+        });
+    }
+
+    #[test]
+    fn roundtrip_composite_formed() {
+        roundtrip(&SimEvent::CompositeFormed {
+            leader_id: 1,
+            member_id: 2,
+            x: 50.0,
+            y: 60.0,
+        });
+    }
+
+    #[test]
+    fn roundtrip_composite_decomposed() {
+        roundtrip(&SimEvent::CompositeDecomposed {
+            leader_id: 1,
+            released_member_ids: vec![2, 3],
+            x: 50.0,
+            y: 60.0,
         });
     }
 }

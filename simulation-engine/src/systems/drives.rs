@@ -1,6 +1,9 @@
 use crate::components::drives::Drives;
 use crate::components::genome::Genome;
-use crate::components::physical::{Age, Energy};
+use crate::components::memory::{Memory, MemoryKind};
+use crate::components::perception::Perception;
+use crate::components::physical::{Age, Energy, Size};
+use crate::components::social::Social;
 use crate::components::spatial::Position;
 use crate::core::world::SimulationWorld;
 
@@ -12,6 +15,12 @@ const CURIOSITY_SATURATION_TICKS: f64 = 200.0;
 #[allow(dead_code)]
 const SAME_AREA_RADIUS: f64 = 20.0;
 
+/// Number of ticks without positive social contact to reach maximum social need.
+const SOCIAL_NEED_SATURATION_TICKS: f64 = 500.0;
+
+/// Max age (in ticks) for WasAttacked memories to contribute to fear.
+const MEMORY_FEAR_RECALL_AGE: u64 = 300;
+
 /// Computes drive values from entity state each tick.
 ///
 /// - hunger = 1.0 - (energy / max_energy)
@@ -21,25 +30,57 @@ const SAME_AREA_RADIUS: f64 = 20.0;
 /// - aggression = 0.0 (no combat system yet)
 /// - reproductive_urge = f(energy_surplus, age, base_reproductive)
 pub fn run(world: &mut SimulationWorld) {
+    let current_tick = world.tick;
+
     // Collect data needed for drive computation.
     let updates: Vec<_> = world
         .ecs
-        .query::<(&Position, &Energy, &Age, &Genome, &Drives)>()
+        .query::<(&Position, &Energy, &Age, &Genome, &Drives, &Perception, &Size, &Social)>()
         .iter()
-        .map(|(entity, (pos, energy, age, genome, _drives))| {
+        .map(|(entity, (pos, energy, age, genome, _drives, perception, _size, social))| {
             let hunger = 1.0 - (energy.current / energy.max).clamp(0.0, 1.0);
 
-            let fear = 0.0; // Phase 3.3
+            // Fear: f(perceived_threats + count_of_WasAttacked_memories)
+            // Stronger nearby entities contribute to perception-based fear.
+            let larger_count = perception
+                .perceived_entities
+                .iter()
+                .filter(|pe| pe.energy_estimate > energy.current * 1.2)
+                .count() as f64;
+            let perception_fear = larger_count * 0.3;
+
+            // Memory-based fear: recent WasAttacked memories contribute.
+            let memory_fear = if let Ok(memory) = world.ecs.get::<&Memory>(entity) {
+                let was_attacked_count = memory
+                    .recall(MemoryKind::WasAttacked, MEMORY_FEAR_RECALL_AGE, current_tick)
+                    .len() as f64;
+                was_attacked_count * 0.15
+            } else {
+                0.0
+            };
+
+            let fear = (perception_fear + memory_fear).clamp(0.0, 1.0);
 
             // Curiosity: simple model based on age and base_curiosity.
-            // In a full implementation this would track position history;
-            // for now, use age as a proxy for time-in-area (entities that
-            // have lived longer in a stable sim have explored less).
             let age_factor = (age.ticks as f64 / CURIOSITY_SATURATION_TICKS).min(1.0);
             let curiosity = (genome.drive_weights.base_curiosity * age_factor).clamp(0.0, 1.0);
 
-            let social_need = 0.0; // Phase 4
-            let aggression = 0.0; // Phase 3.6
+            // Social need: increases with time since last positive social contact.
+            let ticks_since_contact = current_tick.saturating_sub(social.last_positive_contact_tick) as f64;
+            let isolation_factor = (ticks_since_contact / SOCIAL_NEED_SATURATION_TICKS).min(1.0);
+            let social_need = (isolation_factor * genome.drive_weights.base_social_need).clamp(0.0, 1.0);
+
+            // Aggression: f(hunger, perceived_weakness_of_nearby, base_aggression)
+            // Perceived weakness: count of entities with lower energy estimate.
+            let weak_nearby = perception
+                .perceived_entities
+                .iter()
+                .filter(|pe| pe.energy_estimate < energy.current * 0.8)
+                .count() as f64;
+            let weakness_factor = (weak_nearby * 0.25).min(1.0);
+            let aggression =
+                (hunger * 0.4 + weakness_factor * 0.4 + genome.drive_weights.base_aggression * 0.2)
+                    .clamp(0.0, 1.0);
 
             // Reproductive urge: high when energy surplus is large and entity
             // is mature enough (past 10% of lifespan).
@@ -73,7 +114,7 @@ pub fn run(world: &mut SimulationWorld) {
 mod tests {
     use super::*;
     use crate::components::drives::{DriveWeights, Drives};
-    use crate::components::physical::Age;
+    use crate::components::physical::{Age, Size};
     use crate::components::perception::Perception;
     use crate::core::config::SimulationConfig;
 
@@ -109,6 +150,43 @@ mod tests {
             genome,
             Drives::default(),
             Perception::default(),
+            Size::default(),
+            Social::default(),
+        ))
+    }
+
+    /// Spawn entity with a custom Social component for testing social need drive.
+    fn spawn_entity_with_social(
+        world: &mut SimulationWorld,
+        energy_current: f64,
+        energy_max: f64,
+        age_ticks: u64,
+        max_lifespan: u64,
+        drive_weights: DriveWeights,
+        social: Social,
+    ) -> hecs::Entity {
+        let genome = Genome {
+            max_energy: energy_max,
+            max_lifespan,
+            drive_weights,
+            ..Genome::default()
+        };
+        world.ecs.spawn((
+            Position { x: 50.0, y: 50.0 },
+            Energy {
+                current: energy_current,
+                max: energy_max,
+                metabolism_rate: 0.1,
+            },
+            Age {
+                ticks: age_ticks,
+                max_lifespan,
+            },
+            genome,
+            Drives::default(),
+            Perception::default(),
+            Size::default(),
+            social,
         ))
     }
 
@@ -230,14 +308,17 @@ mod tests {
     }
 
     #[test]
-    fn fear_is_zero() {
+    fn fear_is_zero_when_no_threats() {
         let mut world = test_world();
         let e = spawn_entity(&mut world, 50.0, 100.0, 100, 5000, DriveWeights::default());
 
         run(&mut world);
 
         let drives = world.ecs.get::<&Drives>(e).unwrap();
-        assert_eq!(drives.fear, 0.0, "fear should be 0.0 until Phase 3.3");
+        assert_eq!(
+            drives.fear, 0.0,
+            "fear should be 0.0 with no perceived entities"
+        );
     }
 
     #[test]
@@ -262,5 +343,213 @@ mod tests {
         assert!(drives.social_need >= 0.0 && drives.social_need <= 1.0);
         assert!(drives.aggression >= 0.0 && drives.aggression <= 1.0);
         assert!(drives.reproductive_urge >= 0.0 && drives.reproductive_urge <= 1.0);
+    }
+
+    #[test]
+    fn social_need_increases_with_isolation() {
+        let mut world = test_world();
+        world.tick = 600; // Well past saturation
+
+        let weights = DriveWeights {
+            base_social_need: 1.0,
+            ..DriveWeights::default()
+        };
+
+        // Entity with no recent positive contact (last_positive_contact_tick = 0).
+        let isolated = spawn_entity(&mut world, 50.0, 100.0, 100, 5000, weights.clone());
+
+        // Entity with very recent positive contact.
+        let mut recent_social = Social::default();
+        recent_social.last_positive_contact_tick = 599; // just 1 tick ago
+        let social_entity = spawn_entity_with_social(
+            &mut world, 50.0, 100.0, 100, 5000, weights, recent_social,
+        );
+
+        run(&mut world);
+
+        let iso_drives = world.ecs.get::<&Drives>(isolated).unwrap();
+        let soc_drives = world.ecs.get::<&Drives>(social_entity).unwrap();
+
+        assert!(
+            iso_drives.social_need > soc_drives.social_need,
+            "isolated entity should have higher social_need ({}) than recently-social entity ({})",
+            iso_drives.social_need,
+            soc_drives.social_need,
+        );
+    }
+
+    #[test]
+    fn social_need_zero_when_base_social_need_zero() {
+        let mut world = test_world();
+        world.tick = 1000;
+
+        let weights = DriveWeights {
+            base_social_need: 0.0,
+            ..DriveWeights::default()
+        };
+        let e = spawn_entity(&mut world, 50.0, 100.0, 100, 5000, weights);
+
+        run(&mut world);
+
+        let drives = world.ecs.get::<&Drives>(e).unwrap();
+        assert!(
+            drives.social_need < 0.01,
+            "social_need should be ~0 when base_social_need is 0, got {}",
+            drives.social_need,
+        );
+    }
+
+    #[test]
+    fn social_need_high_after_long_isolation() {
+        let mut world = test_world();
+        world.tick = 1000;
+
+        let weights = DriveWeights {
+            base_social_need: 1.0,
+            ..DriveWeights::default()
+        };
+        // Last positive contact at tick 0, current tick 1000 -> 1000 ticks isolation.
+        let e = spawn_entity(&mut world, 50.0, 100.0, 100, 5000, weights);
+
+        run(&mut world);
+
+        let drives = world.ecs.get::<&Drives>(e).unwrap();
+        assert!(
+            drives.social_need > 0.9,
+            "entity isolated for 1000 ticks with base_social_need=1.0 should have high social_need, got {}",
+            drives.social_need,
+        );
+    }
+
+    #[test]
+    fn recent_positive_contact_reduces_social_need() {
+        let mut world = test_world();
+        world.tick = 100;
+
+        let weights = DriveWeights {
+            base_social_need: 1.0,
+            ..DriveWeights::default()
+        };
+
+        let mut social = Social::default();
+        social.last_positive_contact_tick = 95; // 5 ticks ago
+        let e = spawn_entity_with_social(
+            &mut world, 50.0, 100.0, 100, 5000, weights, social,
+        );
+
+        run(&mut world);
+
+        let drives = world.ecs.get::<&Drives>(e).unwrap();
+        assert!(
+            drives.social_need < 0.05,
+            "entity with very recent positive contact should have low social_need, got {}",
+            drives.social_need,
+        );
+    }
+
+    // ---- Phase 3.3: Memory-boosted fear tests ----
+
+    use crate::components::memory::{EvictionWeights, MemoryEntry};
+
+    fn spawn_entity_with_memory(
+        world: &mut SimulationWorld,
+        energy_current: f64,
+        energy_max: f64,
+        age_ticks: u64,
+        max_lifespan: u64,
+        drive_weights: DriveWeights,
+        memory: crate::components::memory::Memory,
+    ) -> hecs::Entity {
+        let genome = Genome {
+            max_energy: energy_max,
+            max_lifespan,
+            drive_weights,
+            ..Genome::default()
+        };
+        world.ecs.spawn((
+            Position { x: 50.0, y: 50.0 },
+            Energy {
+                current: energy_current,
+                max: energy_max,
+                metabolism_rate: 0.1,
+            },
+            Age {
+                ticks: age_ticks,
+                max_lifespan,
+            },
+            genome,
+            Drives::default(),
+            Perception::default(),
+            Size::default(),
+            Social::default(),
+            memory,
+        ))
+    }
+
+    #[test]
+    fn was_attacked_memories_increase_fear() {
+        let mut world = test_world();
+        world.tick = 200;
+
+        let mut memory = crate::components::memory::Memory::new(10, EvictionWeights::default());
+        for i in 0..4 {
+            memory.add(
+                MemoryEntry {
+                    tick: 100 + i * 10,
+                    kind: MemoryKind::WasAttacked,
+                    importance: 0.9,
+                    emotional_valence: -0.8,
+                    x: 30.0,
+                    y: 40.0,
+                    associated_entity_id: Some(42),
+                },
+                100 + i * 10,
+            );
+        }
+
+        let e_with_memory = spawn_entity_with_memory(
+            &mut world,
+            50.0,
+            100.0,
+            100,
+            5000,
+            DriveWeights::default(),
+            memory,
+        );
+        let e_without = spawn_entity(
+            &mut world,
+            50.0,
+            100.0,
+            100,
+            5000,
+            DriveWeights::default(),
+        );
+
+        run(&mut world);
+
+        let fear_with = world.ecs.get::<&Drives>(e_with_memory).unwrap().fear;
+        let fear_without = world.ecs.get::<&Drives>(e_without).unwrap().fear;
+
+        assert!(
+            fear_with > fear_without,
+            "entity with WasAttacked memories should have higher fear ({}) than without ({})",
+            fear_with,
+            fear_without,
+        );
+    }
+
+    #[test]
+    fn fear_without_memories_uses_perception_only() {
+        let mut world = test_world();
+        let e = spawn_entity(&mut world, 50.0, 100.0, 100, 5000, DriveWeights::default());
+
+        run(&mut world);
+
+        let drives = world.ecs.get::<&Drives>(e).unwrap();
+        // No perceived threats and no memory -> fear should be 0.
+        assert_eq!(
+            drives.fear, 0.0,
+            "fear should be 0.0 with no threats and no memories"
+        );
     }
 }

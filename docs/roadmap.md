@@ -254,97 +254,97 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Entities have a memory buffer.
 
-- [ ] MemoryEntry struct: tick, MemoryKind, importance, emotional_valence, location, associated_entity
-- [ ] MemoryKind enum: FoundFood, WasAttacked, AttackedOther, Reproduced, Encountered, EnvironmentChange, NearDeath, Migrated
-- [ ] Memory component: Vec<MemoryEntry> with capacity field, EvictionWeights
-- [ ] EvictionWeights in genome: recency_weight, importance_weight, emotional_weight, variety_weight
-- [ ] Memory capacity as genome trait (costs energy: higher capacity = higher metabolism)
-- [ ] Test: create memory, add entries, verify capacity enforced
+- [x] MemoryEntry struct: tick, MemoryKind, importance, emotional_valence, location, associated_entity
+- [x] MemoryKind enum: FoundFood, WasAttacked, AttackedOther, Reproduced, Encountered, EnvironmentChange, NearDeath, Migrated
+- [x] Memory component: Vec<MemoryEntry> with capacity field, EvictionWeights
+- [x] EvictionWeights in genome: recency_weight, importance_weight, emotional_weight, variety_weight
+- [x] Memory capacity as genome trait (costs energy: higher capacity = higher metabolism)
+- [x] Test: create memory, add entries, verify capacity enforced
 
 ### Phase 3.2: Memory -- Formation and Eviction
 
 **Goal**: Entities form memories from experiences and manage capacity.
 
-- [ ] Memory formation system: after each tick, significant events become memories
-  - [ ] Eating → FoundFood memory (importance based on energy gained)
-  - [ ] Being attacked → WasAttacked memory (high importance, negative valence)
-  - [ ] Reproducing → Reproduced memory (positive valence)
-  - [ ] Near death (energy < 10%) → NearDeath memory (high importance)
-- [ ] Memory eviction: when over capacity, score each memory, evict lowest
-- [ ] Eviction scoring: weighted sum of recency, importance, |emotional_valence|
-- [ ] Test: fill memory to capacity, add new entry, verify lowest-scored entry evicted
+- [x] Memory formation system: after each tick, significant events become memories
+  - [x] Eating → FoundFood memory (importance based on energy gained)
+  - [x] Being attacked → WasAttacked memory (high importance, negative valence)
+  - [x] Reproducing → Reproduced memory (positive valence)
+  - [x] Near death (energy < 10%) → NearDeath memory (high importance)
+- [x] Memory eviction: when over capacity, score each memory, evict lowest
+- [x] Eviction scoring: weighted sum of recency, importance, |emotional_valence|
+- [x] Test: fill memory to capacity, add new entry, verify lowest-scored entry evicted
 
 ### Phase 3.3: Memory -- Behavior Integration
 
 **Goal**: Entities use memories to make better decisions.
 
-- [ ] New BT condition: RecallMemory(kind_filter, max_age_ticks) -- checks if relevant memory exists
-- [ ] New BT action: MoveTowardMemory(kind_filter) -- move toward location of matching memory
-- [ ] Example evolved BT: "if hungry AND recall food location → move to remembered food"
-- [ ] Fear drive updated: f(perceived_threats + count_of_WasAttacked_memories)
+- [x] New BT condition: RecallMemory(kind_filter, max_age_ticks) -- checks if relevant memory exists
+- [x] New BT action: MoveTowardMemory(kind_filter) -- move toward location of matching memory
+- [x] Example evolved BT: "if hungry AND recall food location → move to remembered food"
+- [x] Fear drive updated: f(perceived_threats + count_of_WasAttacked_memories)
 - [ ] Viewer: memory inspector panel for selected entity (list of memories with details)
-- [ ] Test: entity finds food, moves away, returns to remembered food location
+- [x] Test: entity finds food, moves away, returns to remembered food location
 
 ### Phase 3.4: Social Relationships
 
 **Goal**: Entities track interactions with specific other entities.
 
-- [ ] Social component: HashMap<EntityId, RelationshipScore>
-- [ ] Relationship score: running average of interaction valence (-1.0 to 1.0)
-- [ ] Positive interactions: reproduction, proximity without conflict, shared food area
-- [ ] Negative interactions: combat, resource competition
-- [ ] Kin recognition: detect shared genome similarity via species_id comparison
-- [ ] Social need drive: increases with time since positive social contact
-- [ ] Test: two entities that reproduce together develop positive relationship score
+- [x] Social component: HashMap<EntityId, RelationshipScore>
+- [x] Relationship score: running average of interaction valence (-1.0 to 1.0)
+- [x] Positive interactions: reproduction, proximity without conflict, shared food area
+- [x] Negative interactions: combat, resource competition
+- [x] Kin recognition: detect shared genome similarity via species_id comparison
+- [x] Social need drive: increases with time since positive social contact
+- [x] Test: two entities that reproduce together develop positive relationship score
 
 ### Phase 3.5: Social Behavior
 
 **Goal**: Social dynamics drive behavior.
 
-- [ ] New BT condition: NearbyEntity with filter options: Kin, NonKin, Positive (relationship > threshold), Negative
-- [ ] New BT action: MoveTowardEntity(filter, speed_factor)
-- [ ] New BT action: FleeFrom(filter, speed_factor)
-- [ ] Entities seek kin when social_need is high
-- [ ] Entities avoid entities with negative relationship scores
-- [ ] Viewer: relationship graph (nodes = entities, edges = relationships, color = valence)
-- [ ] Viewer: lineage tree for selected entity (ancestry visualization)
-- [ ] Test: entities with positive relationships cluster together; entities with negative relationships avoid each other
+- [x] New BT condition: NearbyEntity with filter options: Kin, NonKin, Positive (relationship > threshold), Negative
+- [x] New BT action: MoveTowardEntity(filter, speed_factor)
+- [x] New BT action: FleeFrom(filter, speed_factor)
+- [x] Entities seek kin when social_need is high
+- [x] Entities avoid entities with negative relationship scores
+- [x] Viewer: relationship graph (nodes = entities, edges = relationships, color = valence)
+- [x] Viewer: lineage tree for selected entity (ancestry visualization)
+- [x] Test: entities with positive relationships cluster together; entities with negative relationships avoid each other
 
 ### Phase 3.6: Combat System
 
 **Goal**: Entities can fight. Predator-prey dynamics.
 
-- [ ] New BT action: Attack(force_factor) -- deal damage to adjacent entity
-- [ ] Combat system: resolve attacks, apply damage to target health
-- [ ] Death by combat: health ≤ 0 → die, attacker gains energy from kill
-- [ ] Aggression drive: f(hunger, perceived_weakness_of_nearby, base_aggression)
-- [ ] Fear drive enhanced: high when perceiving larger/stronger entities
-- [ ] Entity size/strength trade-offs: larger = more damage + more health, but higher metabolism
-- [ ] Combat memory: WasAttacked and AttackedOther memory entries
-- [ ] Test: aggressive entity attacks weaker neighbor, gains energy; weak entity flees strong one
+- [x] New BT action: Attack(force_factor) -- deal damage to adjacent entity
+- [x] Combat system: resolve attacks, apply damage to target health
+- [x] Death by combat: health ≤ 0 → die, attacker gains energy from kill
+- [x] Aggression drive: f(hunger, perceived_weakness_of_nearby, base_aggression)
+- [x] Fear drive enhanced: high when perceiving larger/stronger entities
+- [x] Entity size/strength trade-offs: larger = more damage + more health, but higher metabolism
+- [x] Combat memory: WasAttacked and AttackedOther memory entries
+- [x] Test: aggressive entity attacks weaker neighbor, gains energy; weak entity flees strong one
 
 ### Phase 3.7: Coevolutionary Dynamics
 
 **Goal**: Arms races between predators and prey.
 
-- [ ] Verify predator species emerge (high aggression, large size, pursuit BTs)
-- [ ] Verify prey species emerge (high fear, fast speed, evasion BTs)
-- [ ] Verify arms race: as prey evolve speed, predators evolve pursuit strategies
-- [ ] Viewer: predator/prey species visualization, kill event indicators
-- [ ] Species interaction matrix: which species eat which
-- [ ] Test: run 50,000 ticks, verify predator and prey populations oscillate (Lotka-Volterra-like dynamics)
+- [x] Verify predator species emerge (high aggression, large size, pursuit BTs)
+- [x] Verify prey species emerge (high fear, fast speed, evasion BTs)
+- [x] Verify arms race: as prey evolve speed, predators evolve pursuit strategies
+- [x] Viewer: predator/prey species visualization, kill event indicators
+- [x] Species interaction matrix: which species eat which
+- [x] Test: run 50,000 ticks, verify predator and prey populations oscillate (Lotka-Volterra-like dynamics)
 
 ### Phase 3.8: Replay System
 
 **Goal**: Save and replay simulation history.
 
-- [ ] Snapshot serialization: full world state → bincode → disk file
-- [ ] Snapshot schedule: every N ticks (configurable)
-- [ ] Snapshot loading: deserialize → reconstruct hecs World
-- [ ] Event log persistence: append events to disk file between snapshots
-- [ ] Replay: load snapshot, replay events forward to target tick
-- [ ] CLI: `--replay <snapshot-file> --to-tick <N>` mode
-- [ ] Test: run 10,000 ticks, save snapshot at 5000, load and replay to 10,000, verify identical state
+- [x] Snapshot serialization: full world state → bincode → disk file
+- [x] Snapshot schedule: every N ticks (configurable)
+- [x] Snapshot loading: deserialize → reconstruct hecs World
+- [x] Event log persistence: append events to disk file between snapshots
+- [x] Replay: load snapshot, replay events forward to target tick
+- [x] CLI: `--replay <snapshot-file> --to-tick <N>` mode
+- [x] Test: run 10,000 ticks, save snapshot at 5000, load and replay to 10,000, verify identical state
 
 ---
 
@@ -356,37 +356,37 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Two entities can merge into a composite entity.
 
-- [ ] CompositeBody component: member list, leader entity ID
-- [ ] Composition compatibility: genome trait (composition_affinity, compatibility_vector)
-- [ ] New BT action: CompositionAttempt -- try to merge with adjacent compatible entity
-- [ ] Merge mechanics: new entity spawns with CompositeBody, members lose Position (move with parent)
-- [ ] Members retain: Genome, Memory, Identity (but not independent movement)
-- [ ] Composite entity inherits leader's BehaviorTree
-- [ ] Test: two compatible entities merge, verify composite entity created, verify members linked
+- [x] CompositeBody component: member list, leader entity ID
+- [x] Composition compatibility: genome trait (composition_affinity, compatibility_vector)
+- [x] New BT action: CompositionAttempt -- try to merge with adjacent compatible entity
+- [x] Merge mechanics: new entity spawns with CompositeBody, members lose Position (move with parent)
+- [x] Members retain: Genome, Memory, Identity (but not independent movement)
+- [x] Composite entity inherits leader's BehaviorTree
+- [x] Test: two compatible entities merge, verify composite entity created, verify members linked
 
 ### Phase 4.2: Composition -- Aggregate Capabilities
 
 **Goal**: Composites are stronger than individuals.
 
-- [ ] CellRole enum: Locomotion, Sensing, Attack, Defense, Digestion, Reproduction, Undifferentiated
-- [ ] Role assignment: based on member genome traits (fastest → Locomotion, best sensors → Sensing, etc.)
-- [ ] Aggregate speed: sum of Locomotion members' speed contributions
-- [ ] Aggregate sensor range: max of Sensing members' ranges
-- [ ] Aggregate attack: sum of Attack members' force
-- [ ] Aggregate health: sum of all members' health
-- [ ] Energy distribution: Equal, Proportional, or Priority (genome-controlled)
-- [ ] Test: composite of 3 entities is faster, sees farther, and hits harder than any individual member
+- [x] CellRole enum: Locomotion, Sensing, Attack, Defense, Digestion, Reproduction, Undifferentiated
+- [x] Role assignment: based on member genome traits (fastest → Locomotion, best sensors → Sensing, etc.)
+- [x] Aggregate speed: sum of Locomotion members' speed contributions
+- [x] Aggregate sensor range: max of Sensing members' ranges
+- [x] Aggregate attack: sum of Attack members' force
+- [x] Aggregate health: sum of all members' health
+- [x] Energy distribution: Equal, Proportional, or Priority (genome-controlled)
+- [x] Test: composite of 3 entities is faster, sees farther, and hits harder than any individual member
 
 ### Phase 4.3: Decomposition
 
 **Goal**: Composites can break apart.
 
-- [ ] Decomposition triggers: composite dies, energy critically low, structural mutation
-- [ ] On decomposition: members regain Position (placed near composite's position), regain independent movement
-- [ ] Members retain memories from composite period
-- [ ] Partial decomposition: shed weakest member to save energy
-- [ ] Natural death of member: remove from composite, reduce capabilities
-- [ ] Test: starve a composite, verify it decomposes, verify members survive independently
+- [x] Decomposition triggers: composite dies, energy critically low, structural mutation
+- [x] On decomposition: members regain Position (placed near composite's position), regain independent movement
+- [x] Members retain memories from composite period
+- [x] Partial decomposition: shed weakest member to save energy
+- [x] Natural death of member: remove from composite, reduce capabilities
+- [x] Test: starve a composite, verify it decomposes, verify members survive independently
 
 ### Phase 4.4: Composite Reproduction
 

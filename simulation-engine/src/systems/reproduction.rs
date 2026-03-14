@@ -4,13 +4,18 @@ use crate::components::bt_ops;
 use crate::components::drives::Drives;
 use crate::components::genome::{Genome, mutate};
 use crate::components::identity::Identity;
+use crate::components::memory::Memory;
 use crate::components::perception::Perception;
 use crate::components::physical::{Age, Energy, Health, Size};
+use crate::components::social::Social;
 use crate::components::spatial::Position;
 use crate::components::spatial::Velocity;
 use crate::core::world::SimulationWorld;
 use crate::events::types::SimEvent;
 use rand::Rng;
+
+/// Valence of a reproduction interaction (strongly positive).
+const REPRODUCTION_VALENCE: f64 = 1.0;
 
 /// Fraction of max_energy an entity must exceed to reproduce.
 const REPRODUCTION_ENERGY_THRESHOLD: f64 = 0.8;
@@ -50,6 +55,9 @@ pub fn run(world: &mut SimulationWorld) {
     // 2. Build a set of entities that already reproduced this tick (avoid double-mating).
     let mut reproduced = std::collections::HashSet::new();
 
+    // Pairs of (parent_bits, mate_bits) for recording social interactions after spawning.
+    let mut mating_pairs: Vec<(u64, u64)> = Vec::new();
+
     // 3. For each candidate, try to find a mate; fall back to asexual.
     for (parent_entity, parent_pos, parent_energy, parent_genome, parent_bt, parent_gen) in
         &candidates
@@ -84,6 +92,9 @@ pub fn run(world: &mut SimulationWorld) {
         {
             // Sexual reproduction: crossover + mutation.
             reproduced.insert(mate_entity.to_bits().get());
+
+            // Record mating pair for social relationship update.
+            mating_pairs.push((parent_entity.to_bits().get(), mate_entity.to_bits().get()));
 
             // Reduce mate energy too.
             if let Ok(mut energy) = world.ecs.get::<&mut Energy>(*mate_entity) {
@@ -121,6 +132,12 @@ pub fn run(world: &mut SimulationWorld) {
         let offspring_x = (parent_pos.x + offset_x).rem_euclid(world.config.world_width);
         let offspring_y = (parent_pos.y + offset_y).rem_euclid(world.config.world_height);
 
+        // Build memory from offspring genome before genome is moved.
+        let offspring_memory = Memory::new(
+            offspring_genome.memory_capacity as usize,
+            offspring_genome.eviction_weights.clone(),
+        );
+
         // Spawn offspring.
         let offspring_entity = world.ecs.spawn((
             Position {
@@ -152,6 +169,8 @@ pub fn run(world: &mut SimulationWorld) {
             },
             Perception::default(),
             Drives::default(),
+            Social::default(),
+            offspring_memory,
             offspring_bt,
             Action::default(),
         ));
@@ -164,7 +183,27 @@ pub fn run(world: &mut SimulationWorld) {
         });
     }
 
-    // 4. Record species populations.
+    // 4. Record positive social interactions for mating pairs.
+    for (parent_bits, mate_bits) in &mating_pairs {
+        // Update parent's relationship with mate.
+        for (entity, social) in world.ecs.query_mut::<&mut Social>() {
+            let bits = entity.to_bits().get();
+            if bits == *parent_bits {
+                social.record_interaction(*mate_bits, REPRODUCTION_VALENCE, Some(current_tick));
+                break;
+            }
+        }
+        // Update mate's relationship with parent.
+        for (entity, social) in world.ecs.query_mut::<&mut Social>() {
+            let bits = entity.to_bits().get();
+            if bits == *mate_bits {
+                social.record_interaction(*parent_bits, REPRODUCTION_VALENCE, Some(current_tick));
+                break;
+            }
+        }
+    }
+
+    // 5. Record species populations.
     record_species_history(world);
 }
 
@@ -176,6 +215,7 @@ fn crossover_genomes(
 ) -> Genome {
     use crate::components::drives::DriveWeights;
     use crate::components::genome::compute_species_id;
+    use crate::components::memory::EvictionWeights;
 
     // Randomly pick one parent's value for each trait.
     let mut g = Genome {
@@ -192,6 +232,14 @@ fn crossover_genomes(
             base_aggression: if rng.gen::<bool>() { a.drive_weights.base_aggression } else { b.drive_weights.base_aggression },
             base_reproductive: if rng.gen::<bool>() { a.drive_weights.base_reproductive } else { b.drive_weights.base_reproductive },
         },
+        memory_capacity: if rng.gen::<bool>() { a.memory_capacity } else { b.memory_capacity },
+        eviction_weights: EvictionWeights {
+            recency_weight: if rng.gen::<bool>() { a.eviction_weights.recency_weight } else { b.eviction_weights.recency_weight },
+            importance_weight: if rng.gen::<bool>() { a.eviction_weights.importance_weight } else { b.eviction_weights.importance_weight },
+            emotional_weight: if rng.gen::<bool>() { a.eviction_weights.emotional_weight } else { b.eviction_weights.emotional_weight },
+            variety_weight: if rng.gen::<bool>() { a.eviction_weights.variety_weight } else { b.eviction_weights.variety_weight },
+        },
+        composition_affinity: if rng.gen::<bool>() { a.composition_affinity } else { b.composition_affinity },
         species_id: 0,
     };
     g.species_id = compute_species_id(&g);
@@ -251,6 +299,7 @@ mod tests {
             },
             Perception::default(),
             Drives::default(),
+            Social::default(),
             default_starter_bt(),
             Action::default(),
             genome,
@@ -278,6 +327,7 @@ mod tests {
             Identity { generation: 0, parent_id: None, birth_tick: 0 },
             Perception::default(),
             Drives::default(),
+            Social::default(),
             default_starter_bt(),
             Action::default(),
             genome,
@@ -392,5 +442,66 @@ mod tests {
             4,
             "both parents should produce offspring"
         );
+    }
+
+    #[test]
+    fn sexual_reproduction_creates_positive_relationship() {
+        let mut world = test_world();
+        // Two entities close together, both above threshold -> sexual reproduction.
+        let parent = spawn_entity_at(&mut world, 50.0, 50.0, 90.0);
+        let mate = spawn_entity_at(&mut world, 55.0, 50.0, 90.0);
+
+        let parent_bits = parent.to_bits().get();
+        let mate_bits = mate.to_bits().get();
+
+        run(&mut world);
+
+        // Both parent and mate should have positive relationship scores toward each other.
+        let parent_social = world.ecs.get::<&Social>(parent).unwrap();
+        let score_toward_mate = parent_social.get_relationship(mate_bits);
+        assert!(
+            score_toward_mate > 0.0,
+            "parent should have positive relationship with mate, got {}",
+            score_toward_mate
+        );
+
+        let mate_social = world.ecs.get::<&Social>(mate).unwrap();
+        let score_toward_parent = mate_social.get_relationship(parent_bits);
+        assert!(
+            score_toward_parent > 0.0,
+            "mate should have positive relationship with parent, got {}",
+            score_toward_parent
+        );
+    }
+
+    #[test]
+    fn asexual_reproduction_no_social_interaction() {
+        let mut world = test_world();
+        // Single entity, far from any mate -> asexual reproduction.
+        let parent = spawn_entity_with_energy(&mut world, 90.0);
+
+        run(&mut world);
+
+        // Parent should have no relationships (no mate to bond with).
+        let social = world.ecs.get::<&Social>(parent).unwrap();
+        assert!(
+            social.relationships.is_empty(),
+            "asexual reproduction should not create social relationships"
+        );
+    }
+
+    #[test]
+    fn offspring_has_social_component() {
+        let mut world = test_world();
+        spawn_entity_with_energy(&mut world, 90.0);
+        run(&mut world);
+
+        for (_entity, (identity, _social)) in world.ecs.query_mut::<(&Identity, &Social)>() {
+            if identity.generation == 1 {
+                // Offspring has a Social component - test passes.
+                return;
+            }
+        }
+        panic!("offspring should have a Social component");
     }
 }

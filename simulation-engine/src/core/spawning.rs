@@ -8,7 +8,9 @@ use crate::components::behavior_tree::default_starter_bt;
 use crate::components::drives::Drives;
 use crate::components::genome::Genome;
 use crate::components::identity::Identity;
+use crate::components::memory::Memory;
 use crate::components::perception::Perception;
+use crate::components::social::Social;
 use crate::components::{Age, Energy, Health, Position, Size, Velocity};
 
 /// Spawn a single entity with random position and genome-derived components.
@@ -39,12 +41,17 @@ pub fn spawn_entity(world: &mut SimulationWorld, rng: &mut ChaCha8Rng) -> Entity
 
     let perception = Perception::default();
     let drives = Drives::default();
+    let social = Social::default();
+    let memory = Memory::new(
+        genome.memory_capacity as usize,
+        genome.eviction_weights.clone(),
+    );
     let bt = default_starter_bt();
     let action = Action::default();
 
     world
         .ecs
-        .spawn((position, velocity, energy, health, age, size, genome, identity, perception, drives, bt, action))
+        .spawn((position, velocity, energy, health, age, size, genome, identity, perception, drives, social, memory, bt, action))
 }
 
 /// Spawn the initial population of entities.
@@ -119,6 +126,8 @@ mod tests {
         assert!(world.ecs.get::<&Size>(entity).is_ok());
         assert!(world.ecs.get::<&Genome>(entity).is_ok());
         assert!(world.ecs.get::<&Identity>(entity).is_ok());
+        assert!(world.ecs.get::<&Social>(entity).is_ok());
+        assert!(world.ecs.get::<&Memory>(entity).is_ok());
     }
 
     #[test]

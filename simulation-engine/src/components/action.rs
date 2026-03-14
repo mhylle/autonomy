@@ -16,6 +16,12 @@ pub enum Action {
     Rest,
     /// Wander randomly.
     Wander { speed: f64 },
+    /// Attack a nearby entity.
+    Attack { target_id: u64, force: f64 },
+    /// Flee from a specific world-space position (move away from it).
+    FleeFrom { x: f64, y: f64, speed: f64 },
+    /// Attempt to merge with a nearby compatible entity.
+    CompositionAttempt,
     /// No action this tick.
     None,
 }
@@ -43,6 +49,9 @@ mod tests {
             Action::Eat,
             Action::Rest,
             Action::Wander { speed: 1.0 },
+            Action::Attack { target_id: 42, force: 0.8 },
+            Action::FleeFrom { x: 10.0, y: 20.0, speed: 3.0 },
+            Action::CompositionAttempt,
             Action::None,
         ];
         for action in &actions {

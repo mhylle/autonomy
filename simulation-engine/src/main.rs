@@ -43,12 +43,34 @@ struct Cli {
     /// WebSocket server port
     #[arg(long, default_value_t = 9001)]
     port: u16,
+
+    /// Snapshot interval in ticks (0 = disabled)
+    #[arg(long, default_value_t = 1000)]
+    snapshot_interval: u64,
+
+    /// Directory for snapshot files
+    #[arg(long, default_value = "snapshots")]
+    snapshot_dir: String,
+
+    /// Replay from a snapshot file instead of starting fresh
+    #[arg(long)]
+    replay: Option<String>,
+
+    /// Target tick to replay to (requires --replay)
+    #[arg(long)]
+    to_tick: Option<u64>,
 }
 
 fn main() {
     init_logging();
 
     let cli = Cli::parse();
+
+    // ---- Replay mode ----
+    if let Some(snapshot_path) = &cli.replay {
+        return run_replay(snapshot_path, cli.to_tick);
+    }
+
     let config = build_config(&cli);
     let port = cli.port;
 
@@ -59,6 +81,7 @@ fn main() {
         entities = config.initial_entity_count,
         tick_rate = config.tick_rate,
         headless = config.headless,
+        snapshot_interval = config.snapshot_interval,
         "starting simulation"
     );
 
@@ -84,6 +107,51 @@ fn main() {
     }
 
     run_loop(&mut world, &server_state, &command_rx);
+}
+
+fn run_replay(snapshot_path: &str, to_tick: Option<u64>) {
+    use simulation_engine::core::snapshot;
+
+    info!(path = snapshot_path, "loading snapshot for replay");
+
+    let mut world = snapshot::load_snapshot(std::path::Path::new(snapshot_path))
+        .unwrap_or_else(|e| panic!("failed to load snapshot '{}': {}", snapshot_path, e));
+
+    let start_tick = world.tick;
+    let target_tick = to_tick.unwrap_or(start_tick);
+
+    if target_tick < start_tick {
+        panic!(
+            "target tick {} is before snapshot tick {}",
+            target_tick, start_tick
+        );
+    }
+
+    info!(
+        start_tick = start_tick,
+        target_tick = target_tick,
+        ticks_to_replay = target_tick - start_tick,
+        entities = world.entity_count(),
+        "replaying simulation"
+    );
+
+    while world.tick < target_tick {
+        tick::tick(&mut world);
+
+        if world.tick % 1000 == 0 {
+            info!(
+                tick = world.tick,
+                entities = world.entity_count(),
+                "replay progress"
+            );
+        }
+    }
+
+    info!(
+        tick = world.tick,
+        entities = world.entity_count(),
+        "replay complete"
+    );
 }
 
 fn init_logging() {
@@ -118,6 +186,8 @@ fn config_from_cli(cli: &Cli) -> SimulationConfig {
         initial_entity_count: cli.initial_entities,
         tick_rate: cli.tick_rate,
         headless: cli.headless,
+        snapshot_interval: cli.snapshot_interval,
+        snapshot_dir: cli.snapshot_dir.clone(),
     }
 }
 
@@ -173,6 +243,15 @@ fn run_loop(world: &mut SimulationWorld, server_state: &ServerState, command_rx:
             // Update snapshot periodically for new client connections.
             if world.tick % 100 == 0 {
                 bridge::update_snapshot(world, server_state);
+            }
+
+            // Periodic disk snapshots for replay.
+            let interval = world.config.snapshot_interval;
+            if interval > 0 && world.tick % interval == 0 {
+                let snap_dir = world.config.snapshot_dir.clone();
+                if let Err(e) = simulation_engine::core::snapshot::save_snapshot_to_dir(world, &snap_dir) {
+                    tracing::warn!(error = %e, "failed to save snapshot");
+                }
             }
 
             if world.tick % 1000 == 0 {

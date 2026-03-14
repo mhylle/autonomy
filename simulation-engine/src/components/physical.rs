@@ -65,6 +65,13 @@ pub fn is_dead(energy: &Energy, age: &Age) -> bool {
     energy.current <= 0.0 || age.ticks >= age.max_lifespan
 }
 
+/// Returns `true` when an entity should be considered dead, also checking health.
+///
+/// An entity is dead if health <= 0, energy depleted, or exceeded lifespan.
+pub fn is_dead_with_health(energy: &Energy, age: &Age, health: &Health) -> bool {
+    health.current <= 0.0 || energy.current <= 0.0 || age.ticks >= age.max_lifespan
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -3,6 +3,7 @@ use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use super::drives::DriveWeights;
+use super::memory::EvictionWeights;
 
 /// Genome containing evolvable physical and cognitive traits.
 ///
@@ -21,6 +22,14 @@ pub struct Genome {
     pub mutation_rate: f64,
     /// Base sensitivities for the drive system (evolvable).
     pub drive_weights: DriveWeights,
+    /// Maximum number of memories this entity can hold.
+    /// Higher capacity costs energy (increases metabolism).
+    pub memory_capacity: u16,
+    /// Weights controlling which memories survive eviction (evolvable).
+    pub eviction_weights: EvictionWeights,
+    /// Affinity for joining or forming composite organisms (0.0-1.0).
+    /// Higher values make the entity more willing to merge with compatible neighbours.
+    pub composition_affinity: f64,
     /// Hash for species grouping -- recomputed when genome changes
     pub species_id: u64,
 }
@@ -36,6 +45,9 @@ impl Default for Genome {
             max_lifespan: 5000,
             mutation_rate: 0.05,
             drive_weights: DriveWeights::default(),
+            memory_capacity: 20,
+            eviction_weights: EvictionWeights::default(),
+            composition_affinity: 0.1,
             species_id: 0,
         };
         g.species_id = compute_species_id(&g);
@@ -123,6 +135,35 @@ pub fn mutate(genome: &Genome, rng: &mut ChaCha8Rng) -> Genome {
     child.drive_weights.base_aggression = mutate_drive(child.drive_weights.base_aggression);
     child.drive_weights.base_reproductive = mutate_drive(child.drive_weights.base_reproductive);
 
+    // Memory capacity: mutate as f64, round back, clamp to 1..200.
+    if rng.gen::<f64>() < genome.mutation_rate {
+        let value = child.memory_capacity as f64;
+        let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1 * value;
+        child.memory_capacity = (value + noise).clamp(1.0, 200.0) as u16;
+    }
+
+    // Eviction weights: mutate each, clamped to 0.0..1.0.
+    let mut mutate_weight = |value: f64| -> f64 {
+        if rng.gen::<f64>() < genome.mutation_rate {
+            let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1;
+            (value + noise).clamp(0.0, 1.0)
+        } else {
+            value
+        }
+    };
+    child.eviction_weights.recency_weight = mutate_weight(child.eviction_weights.recency_weight);
+    child.eviction_weights.importance_weight =
+        mutate_weight(child.eviction_weights.importance_weight);
+    child.eviction_weights.emotional_weight =
+        mutate_weight(child.eviction_weights.emotional_weight);
+    child.eviction_weights.variety_weight = mutate_weight(child.eviction_weights.variety_weight);
+
+    // Composition affinity: mutate, clamped to 0.0..1.0.
+    if rng.gen::<f64>() < genome.mutation_rate {
+        let noise = (rng.gen::<f64>() * 2.0 - 1.0) * 0.1;
+        child.composition_affinity = (child.composition_affinity + noise).clamp(0.0, 1.0);
+    }
+
     child.species_id = compute_species_id(&child);
     child
 }
@@ -183,6 +224,9 @@ mod tests {
             max_lifespan: 100,
             mutation_rate: 1.0, // always mutate
             drive_weights: DriveWeights::default(),
+            memory_capacity: 1,
+            eviction_weights: EvictionWeights::default(),
+            composition_affinity: 0.1,
             species_id: 0,
         };
         let mut rng = ChaCha8Rng::seed_from_u64(99);
@@ -196,6 +240,8 @@ mod tests {
             assert!(child.max_lifespan >= 100);
             assert!(child.mutation_rate >= 0.001);
             assert!(child.mutation_rate <= 0.5);
+            assert!(child.memory_capacity >= 1);
+            assert!(child.memory_capacity <= 200);
         }
     }
 

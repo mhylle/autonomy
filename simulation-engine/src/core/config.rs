@@ -12,6 +12,20 @@ pub struct SimulationConfig {
     pub initial_entity_count: u32,
     pub tick_rate: u32,
     pub headless: bool,
+    /// How often to write a snapshot to disk (0 = disabled).
+    #[serde(default = "default_snapshot_interval")]
+    pub snapshot_interval: u64,
+    /// Directory for snapshot files.
+    #[serde(default = "default_snapshot_dir")]
+    pub snapshot_dir: String,
+}
+
+fn default_snapshot_interval() -> u64 {
+    1000
+}
+
+fn default_snapshot_dir() -> String {
+    "snapshots".to_string()
 }
 
 impl Default for SimulationConfig {
@@ -23,6 +37,8 @@ impl Default for SimulationConfig {
             initial_entity_count: 100,
             tick_rate: 60,
             headless: false,
+            snapshot_interval: default_snapshot_interval(),
+            snapshot_dir: default_snapshot_dir(),
         }
     }
 }

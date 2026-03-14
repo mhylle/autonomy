@@ -22,10 +22,11 @@ pub fn tick(world: &mut SimulationWorld) {
     systems::wander::run(world);                     //  4b. action -> velocity
     systems::movement::run(world);                   //  5. movement
     systems::feeding::run(world);                    //  6. feeding
-    //  7. combat       (Phase 3.6+)
+    systems::combat::run(world);                     //  7. combat
     systems::reproduction::run(world);               //  8. reproduction
-    //  9. composition  (Phase 4.1+)
-    // 10. memory       (Phase 3.2+)
+    systems::composition::run(world);                //  9. composition
+    systems::composite_reproduction::run(world);     //  9b. composite reproduction
+    systems::memory::run(world);                     // 10. memory
     systems::aging::run(world);                      // 11. aging
     systems::cleanup::run(world);                    // 12. cleanup
     // 13. event_emit   (Phase 1.5+)
