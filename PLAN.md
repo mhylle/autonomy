@@ -186,49 +186,115 @@ When entities merge: new entity spawns with `CompositeBody` linking members. Mem
 
 ## Implementation Phases
 
-### Phase 1: "Primordial Soup"
-**Goal**: Living world you can watch. Entities wander, eat, reproduce, die.
+### Phase 1: "Scaffolding"
+**Goal**: Project structure, build pipeline, basic ECS world.
 
-**Engine**: Project scaffold, hecs world, tick loop, basic components (Position, Velocity, Energy, Health, Age), hardcoded behavior (move toward food when hungry, wander otherwise), flat 2D world with random food that regrows, spatial index, asexual reproduction with trait mutation, event log, WebSocket server streaming world state, deterministic seeded RNG.
+Cargo workspace setup, hecs world wrapper, tick loop skeleton, basic components (Position, Velocity, Energy), deterministic seeded RNG, simulation config, basic CLI with clap. No entities yet -- just the infrastructure that everything builds on.
 
-**Viewer**: Vite + React + PixiJS, WS client, render entities as colored circles + food as green dots, pan/zoom, HUD (tick/population/FPS), click entity for stats, play/pause.
+### Phase 2: "Primordial Soup"
+**Goal**: A living world. Entities exist, move, consume energy, and die.
 
-**Shared**: Initial protobuf schema, code generation script.
+Spawn entities with Position + Velocity + Energy + Health + Age + Size. Hardcoded behavior (random wander). Flat 2D world with randomly scattered food resources that regrow. Spatial index (grid hash). Feeding system (eat adjacent food). Aging system (metabolism drains energy, lifespan limit). Cleanup system (despawn dead). Event log (in-memory). Basic entity lifecycle: spawn → wander → eat → age → die.
 
-### Phase 2: "Behavior and Decision"
-**Goal**: Replace hardcoded behavior with behavior trees. Entities make decisions.
+### Phase 3: "First Life"
+**Goal**: Entities reproduce. Populations fluctuate. Traits mutate.
 
-Custom BT engine, Perception + Drives + BehaviorTree components, hand-designed starter BT (check hunger→seek food→eat, else wander), genome includes BT, delta streaming (not full state), viewport subscription.
+Simple genome (physical traits only: max_energy, metabolism_rate, max_speed, sensor_range, size, lifespan). Asexual reproduction (when energy > threshold, split with mutated genome). Identity component (generation, parents, birth tick). Species ID via genome hash. Population dynamics: birth rate vs. death rate, carrying capacity from food supply. First emergent behavior: entities with better metabolism/speed genes dominate.
 
-### Phase 3: "Evolution and Diversity"
-**Goal**: Behavior trees evolve via GP. Species diverge. Surprising behaviors emerge.
+### Phase 4: "The Viewer"
+**Goal**: See the simulation in a browser. Real-time.
 
-BT crossover + mutation operators, sexual reproduction, species tracking via genome hash, terrain with noise-generated biomes, environmental pressure events (resource scarcity), viewer: species colors, population charts, BT visualizer.
+Protobuf schema (world.proto). WebSocket server (tokio + axum + tokio-tungstenite). Stream full world state each tick. Vite + React + PixiJS viewer. Render entities as colored circles (color = species hash). Render food as green dots. Pan/zoom with mouse. HUD: tick counter, entity count, FPS. Click entity to see stats panel. Play/pause/speed control.
 
-### Phase 4: "Memory and Social Behavior"
-**Goal**: Entities remember and recognize each other. Social behaviors emerge.
+### Phase 5: "Senses"
+**Goal**: Entities perceive the world. They move toward food instead of wandering randomly.
 
-Memory component with bounded eviction, memory-influenced BT nodes, social relationship tracking, kin recognition, viewer: memory inspector, lineage tree, relationship graph, replay from snapshots.
+Perception component (sensor_range, perceived entities/resources). Perception system: spatial query → populate what each entity sees. Hardcoded behavior upgraded: move toward nearest visible food when hungry, wander when not. Delta streaming (only send changes, not full state). Viewport subscription (server only sends visible entities).
 
-### Phase 5: "Composition and Multicellularity"
-**Goal**: Entities merge into composite organisms. Specialization emerges.
+### Phase 6: "Behavior Trees"
+**Goal**: Replace hardcoded behavior with the BT engine. Entities make real decisions.
 
-CompositeBody component, cell roles + differentiation, energy distribution within composites, decomposition on death, viewer: composite visualization, performance optimization (batch processing), persistent event log to disk.
+Custom BT engine: BtNode enum, tick function, BtStatus. Initial action nodes: MoveTowardResource, Wander, Eat, Rest. Initial condition nodes: CheckDrive(hunger), NearbyResource. Drives component: hunger (computed from energy ratio). BehaviorTree component wrapping a BtNode tree. Decision system: tick BT → produce Action component. Hand-designed starter BT: `Selector(Sequence(CheckHungry, NearbyFood, MoveToFood, Eat), Wander)`.
 
-### Phase 6: "Communication and Culture"
-**Goal**: Entities communicate via signals. Proto-culture emerges.
+### Phase 7: "Evolution Begins"
+**Goal**: Behavior trees are part of the genome and evolve via GP.
 
-Signal system (evolved signal types with no inherent meaning), signal perception, group/tribe formation, teaching (observe successful actions), viewer: signal visualization, tribe territories.
+Genome now includes BtNode as behavioral DNA. Sexual reproduction: two-parent crossover of genomes. BT crossover operator (swap random subtrees). BT parameter mutation (Gaussian noise on thresholds/speeds). BT structural mutation (insert/delete/replace nodes). Bloat control (depth limit, simplification). Mutation rates as genome parameters (evolvable). First truly emergent behaviors appear.
 
-### Phase 7: "Narrative and Intelligence"
-**Goal**: The system tells stories. Interesting entities get narrative arcs.
+### Phase 8: "Diverse World"
+**Goal**: Terrain, biomes, and environmental pressure drive speciation.
 
-Auto-identify interesting entities, arc detection (rivalry, alliance, exodus), structured narrative events, optional LLM narration, viewer: narrative panel, entity biography, timeline scrubbing, bookmarks.
+Noise-generated terrain (Perlin/Simplex) with biomes: grassland, desert, water, forest. Terrain affects movement speed and resource density. Different resource types in different biomes. Species tracking and clustering. Viewer: species color coding, population-over-time charts, terrain rendering, minimap. Environmental pressure events: periodic resource scarcity, droughts.
 
-### Phase 8: "Civilization Scale"
-**Goal**: 100k+ entities. Settlements. Trade. History.
+### Phase 9: "Memory"
+**Goal**: Entities remember. Behavior changes based on past experience.
 
-Multi-threaded simulation (region partitioning), LOD simulation, emergent settlements, resource specialization (trade incentives), NEAT integration for neural decision weights, historical records, save/load, multiple simultaneous viewers.
+Memory component: bounded ring buffer with genome-encoded capacity. Memory entry types: FoundFood, WasAttacked, Encountered, NearDeath, Migrated. Memory formation system: significant events → memory entries. Memory eviction with evolved weights (recency, importance, emotional valence). New BT nodes: RecallMemory condition, MoveTowardMemory action. Entities return to remembered food locations, avoid remembered threats.
+
+### Phase 10: "Social World"
+**Goal**: Entities recognize each other. Relationships form.
+
+Social component: relationship scores with other entities. Kin recognition (shared genome similarity). Positive/negative interaction tracking. Social need drive. BT nodes for social behavior: seek kin, avoid enemies. Viewer: relationship graph, lineage tree. Replay system: snapshots to disk, load snapshot and replay forward.
+
+### Phase 11: "Combat and Competition"
+**Goal**: Entities fight. Predator-prey dynamics emerge.
+
+Combat system: attack action, damage resolution, death by killing. Aggression drive. Fear drive (from perceived threats + attack memories). BT nodes: Attack, FleeFrom. Coevolutionary arms race: prey evolve better evasion, predators evolve better pursuit. Entity size/strength trade-offs. Viewer: combat events, kill counts, predator/prey species visualization.
+
+### Phase 12: "Composition"
+**Goal**: Entities merge into multi-cellular organisms.
+
+CompositeBody component with member tracking. Composition triggers: proximity + compatible genomes + BT action. CellRole assignment based on genome traits. Aggregate capabilities (combined speed, sensing, attack). Energy distribution within composites. Decomposition on death or resource scarcity. Viewer: composite visualization (cluster rendering), member drill-down.
+
+### Phase 13: "Specialization"
+**Goal**: Cell differentiation emerges. Composite organisms develop structure.
+
+Role optimization through evolution: some lineages evolve toward Sensing specialization, others toward Locomotion. Composite reproduction: entire organism reproduces (not just individual cells). Composite behavior tree: leader's BT augmented by member capabilities. Performance optimization: batch processing systems, spatial index tuning. Persistent event log to disk.
+
+### Phase 14: "Signals and Communication"
+**Goal**: Entities emit and perceive signals. Proto-language emerges.
+
+Signal system: entities emit signals (type = evolved integer, no inherent meaning). Signal perception within range. BT nodes: Signal(type) action, DetectSignal(type) condition. Evolved signal meanings: entities that associate useful responses with signals survive better. Alarm calls, food signals, mating signals -- all emergent. Viewer: signal visualization as expanding rings.
+
+### Phase 15: "Tribes and Territory"
+**Goal**: Persistent groups form. Territory emerges.
+
+TribeId component: entities that maintain positive social bonds form tribes. Tribe-level statistics (population, territory, resources). Territorial behavior: prefer to stay near tribe, defend territory from outsiders. Group-level combat: tribes can fight tribes. Teaching: entities observe successful actions by tribe members and add to memory. Viewer: tribe territories, tribal boundaries.
+
+### Phase 16: "Narrative Engine"
+**Goal**: The system identifies and tells stories.
+
+Narrative tracker: auto-identify interesting entities (longest-lived, most offspring, most kills, most territory, greatest migration). Arc detector: pattern match on event sequences (rivalry, alliance, migration, extinction, rise-to-power). Story arc data structure with protagonist, events, tension curve. Entity biography: chronological life story from event log. Viewer: narrative panel, entity biography page, "follow this story" mode.
+
+### Phase 17: "History and Replay"
+**Goal**: Full history browsing. Time travel.
+
+Timeline scrubbing: drag through simulation history. Seek to any tick (load snapshot, replay forward). Bookmark system: save interesting moments. "What-if" forking: branch from any snapshot with modified parameters. Historical analytics: population graphs, species charts, resource levels over time. Event search: find all events involving entity X, or all events of type Y.
+
+### Phase 18: "LLM Narration"
+**Goal**: AI-generated prose narration of emergent stories.
+
+LLM integration (Claude API or similar): feed narrative arc events to LLM, receive prose descriptions. Real-time narration of ongoing arcs. Historical narration: generate prose summary of an entity's life or a civilization's history. Configurable narration style (documentary, epic, journal). Viewer: narration panel with generated text alongside simulation events.
+
+### Phase 19: "Scale"
+**Goal**: 100k+ entities. Multi-threaded simulation.
+
+Multi-threaded tick pipeline: partition world into regions, process in parallel. Thread-safe spatial index. LOD simulation: distant regions simulate at lower fidelity (fewer perception queries, simplified BT). Save/load full simulation state to disk. Multiple simultaneous viewer connections. Performance profiling and optimization.
+
+### Phase 20: "Civilization"
+**Goal**: Settlements, trade, and emergent civilization.
+
+Emergent settlements: groups of entities that stay in one location become settlements. Resource specialization: different biomes produce different resources → trade incentives. Technology analogue: composite organisms with evolved specialized capabilities. NEAT integration: neural network weights within BT decision nodes for more nuanced behavior. Historical records: civilization timelines, rise and fall detection. Viewer: civilization-scale map view, zoom from world overview to individual entity.
+
+### Phase 21: "3D World"
+**Goal**: Expand from 2D to 3D.
+
+3D position and movement. 3D terrain generation. Three.js renderer (replacing PixiJS). 3D spatial index. Volumetric environment: underground, surface, aerial. New movement modes: swimming, climbing, flying (emergent from evolved traits). Viewer: 3D camera controls, cross-section views.
+
+### Phase 22: "Open World"
+**Goal**: Infinite, procedurally generated world.
+
+Chunk-based world generation. Load/unload chunks as entities migrate. Biome generation at world scale. Long-distance migration and species spread. Multiple civilizations in separate regions encountering each other. Inter-civilization dynamics: trade, war, cultural exchange -- all emergent.
 
 ---
 
