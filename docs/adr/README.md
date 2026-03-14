@@ -11,3 +11,4 @@
 | [0007](0007-evolution-mechanism.md) | Continuous evolution via genetic programming | Accepted |
 | [0008](0008-entity-composition.md) | Parent-child entity composition model | Accepted |
 | [0009](0009-homeostatic-drives.md) | Homeostatic drive system for emergent emotions | Accepted |
+| [0010](0010-tool-use-construction.md) | Emergent tool use and construction via material properties | Accepted |

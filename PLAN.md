@@ -184,7 +184,11 @@ When entities merge: new entity spawns with `CompositeBody` linking members. Mem
 
 ---
 
-## Implementation Phases
+## Implementation Roadmap
+
+The full detailed roadmap with task-level breakdowns is in [docs/roadmap.md](docs/roadmap.md) -- 11 Eras, 60+ Phases, hundreds of concrete tasks.
+
+### Summary
 
 ### Phase 1: "Scaffolding"
 **Goal**: Project structure, build pipeline, basic ECS world.
@@ -291,10 +295,23 @@ Emergent settlements: groups of entities that stay in one location become settle
 
 3D position and movement. 3D terrain generation. Three.js renderer (replacing PixiJS). 3D spatial index. Volumetric environment: underground, surface, aerial. New movement modes: swimming, climbing, flying (emergent from evolved traits). Viewer: 3D camera controls, cross-section views.
 
-### Phase 22: "Open World"
-**Goal**: Infinite, procedurally generated world.
+### Phases 23-30: Tool Use & Construction (Era 6)
+Object system with material properties, tool creation/use, structures, crafting, agriculture, storage, infrastructure. No predefined tool types -- tools emerge from material property combinations.
 
-Chunk-based world generation. Load/unload chunks as entities migrate. Biome generation at world scale. Long-distance migration and species spread. Multiple civilizations in separate regions encountering each other. Inter-civilization dynamics: trade, war, cultural exchange -- all emergent.
+### Phases 31-35: Narrative (Era 7)
+Event significance scoring, arc detection, entity biographies, history browser, LLM narration.
+
+### Phases 36-40: Scale (Era 8)
+Performance profiling, multi-threaded simulation, LOD, save/load, multiple viewers.
+
+### Phases 41-47: Civilization (Era 9)
+Settlements, resource specialization, trade, defense/warfare, emergent hierarchy, cultural identity, NEAT integration.
+
+### Phases 48-59: The Third Dimension (Era 10)
+3D coordinates, height maps, caves, Three.js renderer, 3D entities, camera system, spatial index, water, flight, lighting, 3D construction, performance optimization.
+
+### Phases 60-65: Open World (Era 11)
+Chunk system, procedural generation, chunk loading, long-distance migration, multi-civilization encounters, world-scale analytics.
 
 ---
 

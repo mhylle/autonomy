@@ -46,6 +46,9 @@ Entities can merge into composite organisms. Members take on specialized roles (
 ### Evolution
 No separate "generations." Evolution is continuous. When entities reproduce, their genomes (including behavior trees) undergo crossover and mutation. Environmental pressure -- food scarcity, predation, climate change -- drives natural selection. Over time, behavior trees restructure, new strategies emerge, and species diverge.
 
+### Tool Use and Construction
+Entities can create objects from raw materials. Objects have material properties (hardness, sharpness, weight, flexibility) -- there are no predefined tool types. A "sharp stone" is not a "knife" until evolution makes it one. Structures (shelters, walls, farms) emerge from placed objects. Building knowledge spreads culturally, faster than genetic evolution.
+
 ### Emergent Storytelling
 The system tracks interesting entities and detects narrative arcs (rivalries, alliances, migrations, extinctions). An optional LLM layer can narrate these arcs as prose. Every event is logged for replay and historical analysis.
 
@@ -62,18 +65,25 @@ autonomy/
 └── PLAN.md               # Phased implementation plan
 ```
 
-## Implementation Phases
+## Implementation Roadmap
 
-1. **Primordial Soup** -- Basic entities, food, reproduction, browser visualization
-2. **Behavior and Decision** -- Custom behavior tree engine, drives, perception
-3. **Evolution and Diversity** -- Genetic programming, species divergence
-4. **Memory and Social Behavior** -- Bounded memory, kin recognition
-5. **Composition and Multicellularity** -- Entity merging, cell specialization
-6. **Communication and Culture** -- Evolved signals, tribes
-7. **Narrative and Intelligence** -- Story arc detection, LLM narration
-8. **Civilization Scale** -- 100k+ entities, multi-threaded, settlements
+11 Eras, 60+ Phases, hundreds of tasks:
 
-See [PLAN.md](PLAN.md) for full implementation details.
+| Era | Capability |
+|-----|-----------|
+| 1. Foundation | Entities eat, reproduce, die. Browser viewer. |
+| 2. Intelligence | Behavior trees, evolution via GP, terrain, biomes. |
+| 3. Cognition | Memory, social relationships, combat, predator-prey. |
+| 4. Organism | Multi-cellular composition, cell specialization. |
+| 5. Society | Signals, tribes, territory, cultural transmission. |
+| 6. Tool Use | Objects, tools, structures, crafting, agriculture. |
+| 7. Narrative | Story arcs, biographies, history browser, LLM narration. |
+| 8. Scale | Multi-threaded, 100k+ entities, save/load. |
+| 9. Civilization | Settlements, trade, warfare, hierarchy, culture. |
+| 10. 3D World | Height maps, caves, flight, swimming, Three.js. |
+| 11. Open World | Infinite procedural world, multi-civilization encounters. |
+
+See [docs/roadmap.md](docs/roadmap.md) for the full breakdown with tasks, and [PLAN.md](PLAN.md) for architecture details.
 
 ## Documentation
 
