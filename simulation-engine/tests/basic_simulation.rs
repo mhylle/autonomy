@@ -1040,9 +1040,7 @@ fn composite_reproduction_produces_offspring() {
 #[test]
 fn signal_system_end_to_end() {
     use simulation_engine::components::action::Action;
-    use simulation_engine::components::behavior_tree::{
-        BtNode, Comparison, DriveKind,
-    };
+    use simulation_engine::components::behavior_tree::BtNode;
     use simulation_engine::components::drives::Drives;
     use simulation_engine::components::genome::Genome;
     use simulation_engine::components::perception::Perception;
@@ -1051,7 +1049,7 @@ fn signal_system_end_to_end() {
     use simulation_engine::components::identity::Identity;
     use simulation_engine::components::social::Social;
     use simulation_engine::components::memory::Memory;
-    use simulation_engine::environment::signals::Signal;
+
 
     let config = SimulationConfig {
         seed: 42,
@@ -1099,7 +1097,7 @@ fn signal_system_end_to_end() {
         ..Genome::default()
     };
     let receiver = world.ecs.spawn((
-        Position { x: 150.0, y: 50.0 },
+        Position { x: 110.0, y: 50.0 },
         Velocity::default(),
         Energy {
             current: 80.0,
@@ -1147,15 +1145,17 @@ fn signal_system_end_to_end() {
     }
 
     // Verify the receiver perceives signals.
-    let receiver_perception = world.ecs.get::<&Perception>(receiver).unwrap();
-    let perceived_type_1: Vec<_> = receiver_perception.perceived_signals
-        .iter()
-        .filter(|s| s.signal_type == 1)
-        .collect();
-    assert!(
-        !perceived_type_1.is_empty(),
-        "receiver should perceive type-1 signals"
-    );
+    {
+        let receiver_perception = world.ecs.get::<&Perception>(receiver).unwrap();
+        let perceived_type_1: Vec<_> = receiver_perception.perceived_signals
+            .iter()
+            .filter(|s| s.signal_type == 1)
+            .collect();
+        assert!(
+            !perceived_type_1.is_empty(),
+            "receiver should perceive type-1 signals"
+        );
+    }
 
     // Record initial receiver position.
     let initial_rx = world.ecs.get::<&Position>(receiver).unwrap().x;
@@ -1193,7 +1193,7 @@ fn signal_system_end_to_end() {
 #[test]
 fn signal_nodes_in_evolved_bts() {
     use simulation_engine::components::bt_ops;
-    use simulation_engine::components::behavior_tree::{BtNode, node_count, depth};
+    use simulation_engine::components::behavior_tree::BtNode;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 

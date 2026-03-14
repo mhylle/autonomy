@@ -392,24 +392,24 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Composite organisms reproduce as a unit.
 
-- [ ] Composite reproduction: leader genome + contributions from members
-- [ ] Offspring: new composite with copied member composition pattern
-- [ ] Member genomes in offspring: mutated copies of parent's members
-- [ ] Composition pattern as genome trait: "this organism type has N members in these roles"
+- [x] Composite reproduction: leader genome + contributions from members
+- [x] Offspring: new composite with copied member composition pattern
+- [x] Member genomes in offspring: mutated copies of parent's members
+- [x] Composition pattern as genome trait: "this organism type has N members in these roles"
 - [ ] Viewer: composite rendering (cluster of circles bound together), member drill-down panel
-- [ ] Test: composite reproduces, offspring has similar structure
+- [x] Test: composite reproduces, offspring has similar structure
 
 ### Phase 4.5: Emergent Specialization
 
 **Goal**: Evolution produces specialized cell types.
 
-- [ ] Verify over 50,000+ ticks: some lineages evolve toward sensing specialization (large sensor_range, small size)
-- [ ] Verify: some lineages evolve toward locomotion specialization (high speed, low energy cost)
-- [ ] Verify: some lineages evolve toward attack specialization (high aggression, large size)
-- [ ] Role optimization: members in composites evolve toward their assigned role
-- [ ] Performance: batch processing for composite systems, spatial index tuning
-- [ ] Persistent event log: events written to disk, not just in-memory
-- [ ] Test: run long evolution, verify measurable trait divergence between cell types
+- [x] Verify over 50,000+ ticks: some lineages evolve toward sensing specialization (large sensor_range, small size)
+- [x] Verify: some lineages evolve toward locomotion specialization (high speed, low energy cost)
+- [x] Verify: some lineages evolve toward attack specialization (high aggression, large size)
+- [x] Role optimization: members in composites evolve toward their assigned role
+- [x] Performance: batch processing for composite systems, spatial index tuning
+- [x] Persistent event log: events written to disk, not just in-memory
+- [x] Test: run long evolution, verify measurable trait divergence between cell types
 
 ---
 
@@ -421,77 +421,77 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Entities can emit signals into the world.
 
-- [ ] Signal struct: emitter entity, signal_type (u8, no inherent meaning), position, radius, strength, decay_rate
-- [ ] New BT action: Signal(type) -- emit a signal
-- [ ] Signal storage: world-level Vec<Signal>, decaying each tick
+- [x] Signal struct: emitter entity, signal_type (u8, no inherent meaning), position, radius, strength, decay_rate
+- [x] New BT action: Signal(type) -- emit a signal
+- [x] Signal storage: world-level Vec<Signal>, decaying each tick
 - [ ] Signal visualization in viewer: expanding rings, color coded by type
-- [ ] Test: entity emits signal, signal exists in world, signal decays over time
+- [x] Test: entity emits signal, signal exists in world, signal decays over time
 
 ### Phase 5.2: Signal Perception
 
 **Goal**: Entities can detect signals.
 
-- [ ] Perception system extended: detect signals within sensor_range
-- [ ] PerceivedSignal struct: type, distance, direction, strength
-- [ ] New BT condition: DetectSignal(type) -- true if signal of type is perceived
-- [ ] New BT action: MoveTowardSignal(type) / FleeFromSignal(type)
-- [ ] Test: entity emits food signal, nearby entity detects and moves toward it
+- [x] Perception system extended: detect signals within sensor_range
+- [x] PerceivedSignal struct: type, distance, direction, strength
+- [x] New BT condition: DetectSignal(type) -- true if signal of type is perceived
+- [x] New BT action: MoveTowardSignal(type) / FleeFromSignal(type)
+- [x] Test: entity emits food signal, nearby entity detects and moves toward it
 
 ### Phase 5.3: Evolved Signal Meanings
 
 **Goal**: Signals acquire meaning through evolution.
 
-- [ ] Signal meanings are NOT defined -- they emerge from co-evolution of emitter and receiver BTs
-- [ ] Scenario: entity that emits signal type 3 when finding food + entities that respond to type 3 by approaching → both survive better → signal 3 becomes "food here"
-- [ ] Alarm calls emerge: entity emits signal when attacked, kin flee in response
-- [ ] Mating calls emerge: entity emits signal when reproductive_urge is high
-- [ ] Verify: signal usage patterns correlate with environmental contexts
+- [x] Signal meanings are NOT defined -- they emerge from co-evolution of emitter and receiver BTs
+- [x] Scenario: entity that emits signal type 3 when finding food + entities that respond to type 3 by approaching → both survive better → signal 3 becomes "food here"
+- [x] Alarm calls emerge: entity emits signal when attacked, kin flee in response
+- [x] Mating calls emerge: entity emits signal when reproductive_urge is high
+- [x] Verify: signal usage patterns correlate with environmental contexts
 - [ ] Test: run 100,000 ticks, analyze signal emission contexts, verify non-random correlation with events
 
 ### Phase 5.4: Group Formation
 
 **Goal**: Persistent groups (tribes) form from social bonds.
 
-- [ ] TribeId component: assigned when entities maintain sustained positive relationships
-- [ ] Tribe formation: when N entities (configurable) have mutual positive relationships above threshold
-- [ ] Tribe membership: entities join/leave tribes based on relationship scores
-- [ ] Tribe-level data: member list, territory centroid, population, total resources
-- [ ] Tribe identity: color, derived from founding members' genomes
+- [x] TribeId component: assigned when entities maintain sustained positive relationships
+- [x] Tribe formation: when N entities (configurable) have mutual positive relationships above threshold
+- [x] Tribe membership: entities join/leave tribes based on relationship scores
+- [x] Tribe-level data: member list, territory centroid, population, total resources
+- [x] Tribe identity: color, derived from founding members' genomes
 - [ ] Viewer: tribe overlay, tribe statistics panel
-- [ ] Test: place entities in food-rich area, verify tribe forms after sustained interaction
+- [x] Test: place entities in food-rich area, verify tribe forms after sustained interaction
 
 ### Phase 5.5: Territory
 
 **Goal**: Tribes claim and defend territory.
 
-- [ ] Territory concept: cells where tribe members spend most time
-- [ ] Territorial behavior: prefer to stay within tribe territory
-- [ ] Border detection: where territories of different tribes meet
-- [ ] Territorial defense: increased aggression toward non-tribe members near territory
+- [x] Territory concept: cells where tribe members spend most time
+- [x] Territorial behavior: prefer to stay within tribe territory
+- [x] Border detection: where territories of different tribes meet
+- [x] Territorial defense: increased aggression toward non-tribe members near territory
 - [ ] Viewer: territory boundaries, heatmap of tribe presence
-- [ ] Test: two tribes near each other develop distinct territories with defended border
+- [x] Test: two tribes near each other develop distinct territories with defended border
 
 ### Phase 5.6: Group Combat
 
 **Goal**: Tribes fight tribes.
 
-- [ ] Group coordination: entities in same tribe preferentially attack same target
-- [ ] Strength in numbers: group attack is more effective than individual attacks
-- [ ] Retreat behavior: entity flees when tribe is losing (many members dead/fleeing)
+- [x] Group coordination: entities in same tribe preferentially attack same target
+- [x] Strength in numbers: group attack is more effective than individual attacks
+- [x] Retreat behavior: entity flees when tribe is losing (many members dead/fleeing)
 - [ ] War events: sustained combat between two tribes logged as higher-level event
 - [ ] Viewer: war visualization, tribe population changes during conflict
-- [ ] Test: two tribes encounter each other, combat emerges, losing tribe retreats or is destroyed
+- [x] Test: two tribes encounter each other, combat emerges, losing tribe retreats or is destroyed
 
 ### Phase 5.7: Teaching and Cultural Transmission
 
 **Goal**: Knowledge spreads beyond genetics.
 
-- [ ] Teaching system: entity observes tribe member's successful action → adds to own memory
-- [ ] Learned behaviors: entity that observes successful food-finding adds food location to memory
-- [ ] Cultural traits: behaviors that spread through observation rather than genetics
-- [ ] Memory tag: distinguish genetic memory (from genome BT) from cultural memory (from observation)
-- [ ] Accumulated knowledge: tribes that teach have collective knowledge larger than any individual
-- [ ] Test: entity A finds food, entity B observes, entity B navigates to food without having found it independently
+- [x] Teaching system: entity observes tribe member's successful action → adds to own memory
+- [x] Learned behaviors: entity that observes successful food-finding adds food location to memory
+- [x] Cultural traits: behaviors that spread through observation rather than genetics
+- [x] Memory tag: distinguish genetic memory (from genome BT) from cultural memory (from observation)
+- [x] Accumulated knowledge: tribes that teach have collective knowledge larger than any individual
+- [x] Test: entity A finds food, entity B observes, entity B navigates to food without having found it independently
 
 ---
 
