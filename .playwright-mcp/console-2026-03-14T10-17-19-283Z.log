@@ -1,0 +1,6 @@
+[  172505ms] [ERROR] [vite] SyntaxError: The requested module '/src/net/state-store.ts?t=1773483611425' does not provide an export named 'useWorldStore' @ http://localhost:5173/@vite/client:509
+[  172505ms] [ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:509
+[  203705ms] [ERROR] [vite] SyntaxError: The requested module '/src/net/state-store.ts?t=1773483611425' does not provide an export named 'useWorldStore' @ http://localhost:5173/@vite/client:509
+[  203705ms] [ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:509
+[  223006ms] [ERROR] [vite] SyntaxError: The requested module '/src/net/state-store.ts?t=1773483611425' does not provide an export named 'useWorldStore' @ http://localhost:5173/@vite/client:509
+[  223006ms] [ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:509

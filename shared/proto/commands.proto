@@ -1,0 +1,47 @@
+syntax = "proto3";
+package autonomy;
+
+message ClientMessage {
+    oneof message {
+        SubscribeViewport subscribe_viewport = 1;
+        RequestEntityDetail request_entity_detail = 2;
+        SimulationCommand simulation_command = 3;
+        SetSpeed set_speed = 4;
+    }
+}
+
+message SubscribeViewport {
+    double x = 1;
+    double y = 2;
+    double width = 3;
+    double height = 4;
+    float zoom = 5;
+}
+
+message RequestEntityDetail {
+    uint64 entity_id = 1;
+}
+
+message SimulationCommand {
+    string command_type = 1;
+    string payload = 2;
+}
+
+message SetSpeed {
+    double speed_multiplier = 1;
+}
+
+message ServerMessage {
+    oneof message {
+        WorldSnapshotMsg world_snapshot = 1;
+        TickDeltaMsg tick_delta = 2;
+    }
+}
+
+message WorldSnapshotMsg {
+    bytes data = 1;
+}
+
+message TickDeltaMsg {
+    bytes data = 1;
+}

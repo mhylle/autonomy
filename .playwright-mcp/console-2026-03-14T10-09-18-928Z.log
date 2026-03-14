@@ -1,0 +1,8 @@
+[  190317ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  190317ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  190408ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  190409ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  193686ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  193686ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  196109ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  196110ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509

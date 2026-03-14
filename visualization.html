@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomy — Emergent Life Simulation</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg2: #111827;
+    --bg3: #1e293b;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --pink: #f472b6;
+    --yellow: #fbbf24;
+    --teal: #2dd4bf;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10, 14, 23, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    height: 60px;
+    gap: 1rem;
+  }
+
+  nav .logo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-right: 2rem;
+    white-space: nowrap;
+  }
+
+  nav .tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+  }
+
+  nav .tab {
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    white-space: nowrap;
+    border: none;
+    background: none;
+  }
+
+  nav .tab:hover { color: var(--text); background: var(--bg3); }
+  nav .tab.active { color: var(--accent); background: rgba(56, 189, 248, 0.1); }
+
+  /* ── VIEWS ── */
+  .view {
+    display: none;
+    padding: 80px 2rem 3rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  .view.active { display: block; }
+
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 2rem 0 1rem;
+    color: var(--accent);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+    max-width: 750px;
+  }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr 80px 1fr;
+    gap: 0;
+    align-items: start;
+    margin: 2rem 0;
+  }
+
+  .arch-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .arch-box:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .arch-box .tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .tag-rust { background: rgba(251, 146, 60, 0.15); color: var(--orange); }
+  .tag-ts { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+  .tag-proto { background: rgba(129, 140, 248, 0.15); color: var(--accent2); }
+
+  .arch-box h3 { margin-top: 0; }
+
+  .arch-box ul {
+    list-style: none;
+    margin-top: 0.75rem;
+  }
+
+  .arch-box ul li {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    padding: 0.25rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .arch-box ul li::before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: monospace;
+    font-weight: bold;
+  }
+
+  .arch-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 3rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .arch-arrow .arrow-line {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    position: relative;
+  }
+
+  .arch-arrow .arrow-line::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    border: 5px solid transparent;
+    border-left-color: var(--accent2);
+  }
+
+  /* ── TICK PIPELINE ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+    position: relative;
+  }
+
+  .pipeline::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), var(--accent2), var(--accent3), var(--green));
+  }
+
+  .pipe-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    position: relative;
+  }
+
+  .pipe-num {
+    width: 48px;
+    height: 32px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    z-index: 1;
+    border: 2px solid;
+  }
+
+  .pipe-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+
+  .pipe-content:hover { border-color: var(--accent); }
+
+  .pipe-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .pipe-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .pipe-phase-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ── ROADMAP ── */
+  .era-timeline {
+    position: relative;
+    padding-left: 40px;
+    margin: 2rem 0;
+  }
+
+  .era-timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom,
+      var(--accent),
+      var(--green),
+      var(--yellow),
+      var(--orange),
+      var(--pink),
+      var(--accent3),
+      var(--accent2),
+      var(--teal),
+      var(--red),
+      var(--accent),
+      var(--green)
+    );
+    border-radius: 2px;
+  }
+
+  .era-block {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  .era-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    position: absolute;
+    left: -33px;
+    top: 12px;
+    border: 3px solid var(--bg);
+    z-index: 1;
+  }
+
+  .era-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .era-header:hover {
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .era-header.expanded {
+    border-color: var(--accent);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .era-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .era-title {
+    font-weight: 600;
+    font-size: 1rem;
+    flex: 1;
+  }
+
+  .era-phases-count {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .era-chevron {
+    transition: transform 0.3s;
+    color: var(--text-dim);
+  }
+
+  .era-header.expanded .era-chevron { transform: rotate(180deg); }
+
+  .era-phases {
+    display: none;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-bottom-left-radius: var(--radius);
+    border-bottom-right-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+
+  .era-phases.expanded { display: block; }
+
+  .phase-item {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+
+  .phase-item:last-child { border-bottom: none; }
+
+  .phase-id {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    white-space: nowrap;
+    min-width: 55px;
+  }
+
+  .phase-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .phase-goal {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+  }
+
+  /* ── COMPONENT LAYERS ── */
+  .layer-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+    max-width: 800px;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .layer:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .layer:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+  .layer + .layer { border-top: none; }
+
+  .layer:hover { border-color: var(--accent); z-index: 1; position: relative; }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .layer-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .components-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  .comp-chip {
+    font-family: monospace;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+
+  /* ── SUBSYSTEMS ── */
+  .subsystem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0;
+  }
+
+  .subsystem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: all 0.25s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .subsystem-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .subsystem-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+
+  .subsystem-card .icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .subsystem-card h3 { margin-bottom: 0.5rem; }
+
+  .subsystem-card p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .subsystem-detail {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .subsystem-card.expanded .subsystem-detail { display: block; }
+
+  .formula {
+    font-family: monospace;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.3);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+    display: block;
+    color: var(--green);
+  }
+
+  /* ── PRINCIPLES ── */
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .principle-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    border-left: 3px solid;
+  }
+
+  .principle-card h3 {
+    font-size: 0.95rem;
+  }
+
+  .principle-card p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+  }
+
+  /* ── OVERVIEW HERO ── */
+  .hero {
+    text-align: center;
+    padding: 4rem 0 2rem;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent3), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero .subtitle {
+    margin: 0.75rem auto 2rem;
+    font-size: 1.15rem;
+    text-align: center;
+  }
+
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin: 2rem 0;
+  }
+
+  .hero-stat {
+    text-align: center;
+  }
+
+  .hero-stat .num {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-stat .label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+  }
+
+  /* ── OVERVIEW FLOW ── */
+  .flow-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 0.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .flow-box {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+    min-width: 140px;
+    border: 2px solid;
+    transition: transform 0.2s;
+    position: relative;
+  }
+
+  .flow-box:hover { transform: scale(1.05); }
+
+  .flow-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+  }
+
+  .flow-connector-v {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+  }
+
+  .flow-box-sub {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-top: 0.2rem;
+  }
+
+  /* ── ADR LIST ── */
+  .adr-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .adr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    transition: all 0.2s;
+  }
+
+  .adr-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .adr-id {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+  }
+
+  .adr-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin: 0.3rem 0;
+  }
+
+  .adr-decision {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .adr-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--green);
+    display: inline-block;
+    margin-top: 0.5rem;
+  }
+
+  /* ── CONCEPT MAP (overview) ── */
+  .concept-map {
+    position: relative;
+    margin: 2rem 0;
+  }
+
+  .concept-map svg {
+    width: 100%;
+    height: 500px;
+  }
+
+  /* ── EMERGENCE VIEW ── */
+  .emergence-timeline {
+    position: relative;
+    margin: 2rem 0;
+    padding-left: 60px;
+  }
+
+  .emergence-timeline::before {
+    content: '';
+    position: absolute;
+    left: 28px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--green), var(--yellow), var(--orange), var(--red), var(--pink), var(--accent3));
+    border-radius: 2px;
+  }
+
+  .emergence-item {
+    position: relative;
+    margin-bottom: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    transition: all 0.2s;
+  }
+
+  .emergence-item:hover {
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .emergence-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    position: absolute;
+    left: -42px;
+    top: 16px;
+    border: 3px solid var(--bg);
+    z-index: 1;
+  }
+
+  .emergence-era {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+  }
+
+  .emergence-item h3 { margin-bottom: 0.4rem; }
+
+  .emergence-item p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .emergence-examples {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .emergence-tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+
+  /* ── DATA FLOW VIEW ── */
+  .dataflow {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
+    max-width: 900px;
+  }
+
+  .dataflow-row {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .dataflow-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    flex: 1;
+    transition: all 0.2s;
+  }
+
+  .dataflow-box:hover { border-color: var(--accent); }
+
+  .dataflow-box h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .dataflow-box p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .dataflow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .arch-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .arch-arrow {
+      flex-direction: row;
+      padding-top: 0;
+    }
+    .arch-arrow .arrow-line {
+      width: 2px;
+      height: 30px;
+    }
+    .hero-stats { flex-wrap: wrap; gap: 1.5rem; }
+    nav { padding: 0 1rem; }
+    .view { padding: 80px 1rem 2rem; }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">AUTONOMY</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showView('overview')">Overview</button>
+    <button class="tab" onclick="showView('architecture')">Architecture</button>
+    <button class="tab" onclick="showView('pipeline')">Tick Pipeline</button>
+    <button class="tab" onclick="showView('components')">Components</button>
+    <button class="tab" onclick="showView('subsystems')">Subsystems</button>
+    <button class="tab" onclick="showView('emergence')">Emergence</button>
+    <button class="tab" onclick="showView('roadmap')">Roadmap</button>
+    <button class="tab" onclick="showView('decisions')">Decisions</button>
+    <button class="tab" onclick="showView('principles')">Principles</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════ OVERVIEW ════════════════════════════════════════════ -->
+<div id="view-overview" class="view active">
+  <div class="hero">
+    <h1>Autonomy</h1>
+    <p class="subtitle">
+      An artificial life simulation where civilizations emerge from simple cellular entities.
+      No behavior is hard-coded beyond the simplest drives. Everything else &mdash; cooperation, aggression,
+      culture, settlement, trade &mdash; emerges from environmental pressure and natural selection.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">11</div><div class="label">Eras</div></div>
+      <div class="hero-stat"><div class="num">65</div><div class="label">Phases</div></div>
+      <div class="hero-stat"><div class="num">15</div><div class="label">Tick Systems</div></div>
+      <div class="hero-stat"><div class="num">10</div><div class="label">ADRs</div></div>
+      <div class="hero-stat"><div class="num">4</div><div class="label">Component Layers</div></div>
+    </div>
+  </div>
+
+  <h2>System Flow</h2>
+  <div class="flow-diagram">
+    <div class="flow-row">
+      <div class="flow-box" style="border-color: var(--orange); background: rgba(251,146,60,0.08);">
+        Simulation Engine
+        <div class="flow-box-sub">Rust / hecs ECS</div>
+      </div>
+      <div class="flow-connector">&rarr;</div>
+      <div class="flow-box" style="border-color: var(--accent2); background: rgba(129,140,248,0.08);">
+        Protobuf Events
+        <div class="flow-box-sub">WebSocket stream</div>
+      </div>
+      <div class="flow-connector">&rarr;</div>
+      <div class="flow-box" style="border-color: var(--accent); background: rgba(56,189,248,0.08);">
+        Browser Viewer
+        <div class="flow-box-sub">React + PixiJS</div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-box" style="border-color: var(--accent); background: rgba(56,189,248,0.08);">
+        User Commands
+        <div class="flow-box-sub">Kill, spawn, terrain</div>
+      </div>
+      <div class="flow-connector">&rarr;</div>
+      <div class="flow-box" style="border-color: var(--accent2); background: rgba(129,140,248,0.08);">
+        Protobuf Commands
+        <div class="flow-box-sub">WebSocket</div>
+      </div>
+      <div class="flow-connector">&rarr;</div>
+      <div class="flow-box" style="border-color: var(--orange); background: rgba(251,146,60,0.08);">
+        Command Handler
+        <div class="flow-box-sub">crossbeam channel</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>The Vision</h2>
+  <div class="subsystem-grid">
+    <div class="subsystem-card" style="cursor: default;">
+      <span class="icon">&#x1F52C;</span>
+      <h3>Zoom In</h3>
+      <p>See an individual entity's life story, memories, behavior tree decisions, lineage, and relationships. Watch it hunt, flee, remember, and teach.</p>
+    </div>
+    <div class="subsystem-card" style="cursor: default;">
+      <span class="icon">&#x1F30D;</span>
+      <h3>Zoom Out</h3>
+      <p>Watch civilizations rise and fall. See species diverge across biomes, trade routes emerge between settlements, and cultures develop unique signal languages.</p>
+    </div>
+    <div class="subsystem-card" style="cursor: default;">
+      <span class="icon">&#x1F4D6;</span>
+      <h3>Read the Story</h3>
+      <p>Auto-detected narrative arcs — rivalries, alliances, migrations, extinctions — optionally narrated as prose by an LLM. Every event is logged for replay.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ ARCHITECTURE ════════════════════════════════════════════ -->
+<div id="view-architecture" class="view">
+  <h1>Architecture</h1>
+  <p class="subtitle">Three-component system: a Rust simulation engine, Protobuf wire protocol, and TypeScript browser viewer, communicating via WebSocket.</p>
+
+  <div class="arch-grid">
+    <!-- Simulation Engine -->
+    <div class="arch-box">
+      <span class="tag tag-rust">Rust</span>
+      <h3>Simulation Engine</h3>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Tick-based, deterministic ECS simulation</p>
+      <ul>
+        <li>hecs ECS world wrapper</li>
+        <li>15-system tick pipeline</li>
+        <li>Behavior tree engine (~300 LOC)</li>
+        <li>Genetic programming / evolution</li>
+        <li>Event sourcing + snapshots</li>
+        <li>Noise-generated terrain</li>
+        <li>Grid spatial hash index</li>
+        <li>Deterministic RNG (ChaCha8)</li>
+      </ul>
+    </div>
+
+    <div class="arch-arrow">
+      <span>events</span>
+      <div class="arrow-line"></div>
+      <span style="font-size:0.65rem; margin-top:0.5rem">commands</span>
+      <div class="arrow-line" style="transform: rotate(180deg)"></div>
+    </div>
+
+    <!-- Protocol -->
+    <div class="arch-box">
+      <span class="tag tag-proto">Protobuf</span>
+      <h3>Wire Protocol</h3>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Language-neutral shared schema</p>
+      <ul>
+        <li>world.proto — state & deltas</li>
+        <li>events.proto — all event types</li>
+        <li>commands.proto — client actions</li>
+        <li>prost (Rust) + ts-proto (TS)</li>
+        <li>WebSocket transport</li>
+        <li>Delta streaming (changes only)</li>
+        <li>Viewport filtering</li>
+        <li>LOD data levels</li>
+      </ul>
+    </div>
+
+    <div class="arch-arrow">
+      <span>deltas</span>
+      <div class="arrow-line"></div>
+      <span style="font-size:0.65rem; margin-top:0.5rem">viewport</span>
+      <div class="arrow-line" style="transform: rotate(180deg)"></div>
+    </div>
+
+    <!-- Viewer -->
+    <div class="arch-box">
+      <span class="tag tag-ts">TypeScript</span>
+      <h3>Browser Viewer</h3>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Real-time visualization &amp; interaction</p>
+      <ul>
+        <li>PixiJS v8 (WebGL, 100k+ sprites)</li>
+        <li>React UI panels</li>
+        <li>Zustand state store</li>
+        <li>Pan / zoom / select</li>
+        <li>Entity inspector</li>
+        <li>God-mode controls</li>
+        <li>Timeline scrubbing</li>
+        <li>Narrative panel</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Server &rarr; Client Messages</h2>
+  <div class="dataflow">
+    <div class="dataflow-row">
+      <div class="dataflow-box">
+        <h4>WorldSnapshot</h4>
+        <p>Full state dump sent on connect or timeline seek</p>
+      </div>
+      <div class="dataflow-box">
+        <h4>TickDelta</h4>
+        <p>Per-tick changes: spawns, moves, updates, deaths, resource changes</p>
+      </div>
+    </div>
+    <div class="dataflow-row">
+      <div class="dataflow-box">
+        <h4>EntityDetail</h4>
+        <p>Full entity details: memory, drives, behavior tree state, lineage</p>
+      </div>
+      <div class="dataflow-box">
+        <h4>NarrativeUpdate</h4>
+        <p>Story arc events, protagonist tracking, tension curves</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>Client &rarr; Server Messages</h2>
+  <div class="dataflow">
+    <div class="dataflow-row">
+      <div class="dataflow-box">
+        <h4>SubscribeViewport</h4>
+        <p>Camera position + zoom level — determines what gets streamed</p>
+      </div>
+      <div class="dataflow-box">
+        <h4>SimulationCommand</h4>
+        <p>Kill, spawn, modify terrain, pause/resume</p>
+      </div>
+    </div>
+    <div class="dataflow-row">
+      <div class="dataflow-box">
+        <h4>RequestEntityDetail</h4>
+        <p>Request full state for a selected entity</p>
+      </div>
+      <div class="dataflow-box">
+        <h4>SetSpeed / SeekTick</h4>
+        <p>Adjust tick rate or jump to a specific historical tick</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ TICK PIPELINE ════════════════════════════════════════════ -->
+<div id="view-pipeline" class="view">
+  <h1>Tick Pipeline</h1>
+  <p class="subtitle">Each simulation tick executes systems in a fixed, deterministic order. Same seed = same simulation. Every run is reproducible.</p>
+
+  <div class="pipeline" id="pipeline-container"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ COMPONENTS ════════════════════════════════════════════ -->
+<div id="view-components" class="view">
+  <h1>Entity Components</h1>
+  <p class="subtitle">Entities are composed of plain data structs. Complexity builds in layers across implementation phases. No methods — all logic lives in systems.</p>
+
+  <div class="layer-stack" id="layer-stack"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ SUBSYSTEMS ════════════════════════════════════════════ -->
+<div id="view-subsystems" class="view">
+  <h1>Core Subsystems</h1>
+  <p class="subtitle">The key mechanisms that enable emergent behavior. Click a card to see details.</p>
+
+  <div class="subsystem-grid" id="subsystem-grid"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ EMERGENCE ════════════════════════════════════════════ -->
+<div id="view-emergence" class="view">
+  <h1>Emergent Complexity</h1>
+  <p class="subtitle">Nothing is hard-coded beyond simple drives. Each layer of complexity emerges from environmental pressure and the mechanisms below it.</p>
+
+  <div class="emergence-timeline" id="emergence-timeline"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ ROADMAP ════════════════════════════════════════════ -->
+<div id="view-roadmap" class="view">
+  <h1>Implementation Roadmap</h1>
+  <p class="subtitle">11 Eras, 65 phases — from primordial soup to infinite open world. Click an era to expand its phases.</p>
+
+  <div class="era-timeline" id="era-timeline"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ DECISIONS ════════════════════════════════════════════ -->
+<div id="view-decisions" class="view">
+  <h1>Architecture Decisions</h1>
+  <p class="subtitle">10 Architecture Decision Records documenting key technical choices and their rationale.</p>
+
+  <div class="adr-list" id="adr-list"></div>
+</div>
+
+<!-- ════════════════════════════════════════════ PRINCIPLES ════════════════════════════════════════════ -->
+<div id="view-principles" class="view">
+  <h1>Design Principles</h1>
+  <p class="subtitle">The guiding principles behind every design decision in Autonomy.</p>
+
+  <div class="principles-grid" id="principles-grid"></div>
+</div>
+
+<script>
+// ── VIEW SWITCHING ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.toLowerCase().replace(/\s+/g,'') === id.replace(/\s+/g,'') ||
+        t.onclick.toString().includes("'" + id + "'")) {
+      t.classList.add('active');
+    }
+  });
+  window.scrollTo(0, 0);
+}
+
+// ── TICK PIPELINE DATA ──
+const pipeline = [
+  { num: 1, name: 'environment', desc: 'Resource regrowth, climate, structure decay, farm growth', color: 'var(--green)', phase: 'Era 1+', cat: 'world' },
+  { num: 2, name: 'perception', desc: 'Spatial query: entities, resources, objects, structures, signals', color: 'var(--accent)', phase: 'Era 2', cat: 'sense' },
+  { num: 3, name: 'drives', desc: 'Update hunger, fear, curiosity, social need, aggression, reproductive urge', color: 'var(--accent2)', phase: 'Era 2', cat: 'think' },
+  { num: 4, name: 'decision', desc: 'Tick behavior trees, produce Action component for each entity', color: 'var(--accent3)', phase: 'Era 2', cat: 'think' },
+  { num: 5, name: 'movement', desc: 'Resolve movement, collision detection, structure blocking', color: 'var(--yellow)', phase: 'Era 1+', cat: 'act' },
+  { num: 6, name: 'feeding', desc: 'Consume resources, harvest farms, gain energy', color: 'var(--green)', phase: 'Era 1+', cat: 'act' },
+  { num: 7, name: 'combat', desc: 'Resolve attacks with tool modifiers, apply damage', color: 'var(--red)', phase: 'Era 3', cat: 'act' },
+  { num: 8, name: 'construction', desc: 'Resolve build/craft/tool actions', color: 'var(--orange)', phase: 'Era 6', cat: 'act' },
+  { num: 9, name: 'inventory', desc: 'Pickup, drop, equip objects', color: 'var(--orange)', phase: 'Era 6', cat: 'act' },
+  { num: 10, name: 'structure', desc: 'Place structures, update effects, register in spatial index', color: 'var(--orange)', phase: 'Era 6', cat: 'act' },
+  { num: 11, name: 'knowledge', desc: 'Observation learning, teaching, blueprint transfer', color: 'var(--pink)', phase: 'Era 5', cat: 'social' },
+  { num: 12, name: 'reproduction', desc: 'Genome crossover + mutation, spawn offspring', color: 'var(--pink)', phase: 'Era 1+', cat: 'life' },
+  { num: 13, name: 'composition', desc: 'Entity merging/splitting into multi-cellular organisms', color: 'var(--accent3)', phase: 'Era 4', cat: 'life' },
+  { num: 14, name: 'memory', desc: 'Record experiences, evict memories over capacity', color: 'var(--teal)', phase: 'Era 3', cat: 'think' },
+  { num: 15, name: 'aging', desc: 'Increment age, metabolism cost, natural death, object decay', color: 'var(--text-dim)', phase: 'Era 1+', cat: 'life' },
+  { num: 16, name: 'cleanup', desc: 'Despawn dead entities, broken objects, decayed structures', color: 'var(--text-dim)', phase: 'Era 1+', cat: 'infra' },
+  { num: 17, name: 'event_emit', desc: 'Flush all events to the append-only event log', color: 'var(--text-dim)', phase: 'Era 1+', cat: 'infra' },
+  { num: 18, name: 'snapshot', desc: 'Periodic full-state snapshot for replay/seek', color: 'var(--text-dim)', phase: 'Era 1+', cat: 'infra' },
+  { num: 19, name: 'network_sync', desc: 'Compute deltas, push to connected WebSocket viewers', color: 'var(--accent)', phase: 'Era 1+', cat: 'infra' },
+];
+
+const catColors = {
+  world: 'var(--green)', sense: 'var(--accent)', think: 'var(--accent2)',
+  act: 'var(--yellow)', social: 'var(--pink)', life: 'var(--accent3)',
+  infra: 'var(--text-dim)'
+};
+
+const catLabels = {
+  world: 'World', sense: 'Sense', think: 'Think',
+  act: 'Act', social: 'Social', life: 'Life', infra: 'Infrastructure'
+};
+
+(function renderPipeline() {
+  const el = document.getElementById('pipeline-container');
+  el.innerHTML = pipeline.map(s => `
+    <div class="pipe-step">
+      <div class="pipe-num" style="border-color: ${catColors[s.cat]}; color: ${catColors[s.cat]}; background: ${catColors[s.cat]}15;">${s.num}</div>
+      <div class="pipe-content">
+        <div>
+          <div class="pipe-name">${s.name}</div>
+          <div class="pipe-desc">${s.desc}</div>
+        </div>
+        <span class="pipe-phase-badge" style="background: ${catColors[s.cat]}20; color: ${catColors[s.cat]};">${s.phase} &middot; ${catLabels[s.cat]}</span>
+      </div>
+    </div>
+  `).join('');
+})();
+
+// ── COMPONENT LAYERS ──
+const layers = [
+  {
+    name: 'Layer 4: Compositional', phase: 'Era 4-5+', color: 'var(--accent3)',
+    desc: 'Multi-cellular organisms and communication',
+    components: ['CompositeBody', 'CellRole', 'Signal']
+  },
+  {
+    name: 'Layer 3: Social', phase: 'Era 3', color: 'var(--pink)',
+    desc: 'Memory, relationships, and tribal bonds',
+    components: ['Memory', 'Social', 'TribeId', 'Relationships']
+  },
+  {
+    name: 'Layer 2: Cognitive', phase: 'Era 2', color: 'var(--accent)',
+    desc: 'Perception, drives, behavior trees, and full genome',
+    components: ['Perception', 'SensorRange', 'PerceivedEntities', 'Drives', 'BehaviorTree', 'Genome']
+  },
+  {
+    name: 'Layer 1: Physical', phase: 'Era 1', color: 'var(--green)',
+    desc: 'Spatial existence, energy, health, aging, identity',
+    components: ['Position', 'Velocity', 'Energy', 'Health', 'Age', 'Size', 'Identity', 'SimpleGenome']
+  },
+];
+
+(function renderLayers() {
+  const el = document.getElementById('layer-stack');
+  el.innerHTML = layers.map(l => `
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-label" style="background: ${l.color}20; color: ${l.color};">${l.phase}</span>
+        <h3>${l.name}</h3>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-dim);">${l.desc}</p>
+      <div class="components-list">
+        ${l.components.map(c => `<span class="comp-chip" style="border-color: ${l.color}40;">${c}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+})();
+
+// ── SUBSYSTEMS ──
+const subsystems = [
+  {
+    icon: '&#x1F333;', title: 'Behavior Trees', color: 'var(--green)',
+    summary: 'Each entity\'s decision-making is a tree of nodes — condition checks, control flow, and action leaves. The tree is ticked once per simulation tick.',
+    detail: `<strong>Node types:</strong> Sequence, Selector, Inverter, RepeatWhile (control flow). CheckDrive, NearbyEntity, NearbyResource, CheckEnergy, RecallMemory, RandomChance (conditions). MoveToward, FleeFrom, Wander, Eat, Attack, Reproduce, Rest, Signal (actions).<br><br>
+    <strong>Evolution:</strong> BTs are stored in the genome and subjected to genetic operators: subtree crossover, parameter mutation, structural mutation, and simplification. The decision architecture itself is subject to natural selection.`
+  },
+  {
+    icon: '&#x1F9EC;', title: 'Evolution & Genetics', color: 'var(--accent2)',
+    summary: 'Continuous evolution via genetic programming. No separate generations — reproduction with crossover and mutation happens whenever conditions are met.',
+    detail: `<strong>Reproduction triggers:</strong> Energy > threshold, compatible entity adjacent (sexual) or solo (asexual).<br><br>
+    <strong>Mutation affects:</strong> Physical traits, drive sensitivities, memory capacity, eviction weights, BT structure, BT parameters, construction blueprints, and mutation rates themselves.<br><br>
+    <strong>Selection pressure:</strong> Food scarcity, predation, climate change, resource heterogeneity. Species diverge when genome similarity drops below threshold.`
+  },
+  {
+    icon: '&#x1F9E0;', title: 'Memory System', color: 'var(--teal)',
+    summary: 'Bounded memory (10-50 entries from genome). When full, evolved eviction weights decide what to forget. Memory management is evolutionary pressure.',
+    detail: `<strong>Each memory records:</strong> when (tick), what (found food, was attacked, etc.), importance, emotional valence (-1 to +1), where, who.<br><br>
+    <code class="formula">eviction_score = recency_w * recency + importance_w * importance + emotion_w * |valence|</code>
+    Weights are part of the genome. Entities that remember food locations and threats survive longer.`
+  },
+  {
+    icon: '&#x2764;&#xFE0F;', title: 'Homeostatic Drives', color: 'var(--red)',
+    summary: 'Six drives computed from internal state: hunger, fear, curiosity, social need, aggression, reproductive urge. Not hard-coded — emergent.',
+    detail: `<code class="formula">hunger = 1.0 - (energy.current / energy.max)
+fear = f(threats, health, attack_memories)
+curiosity = f(time_in_area, genome.curiosity)
+social_need = f(time_since_contact, genome.social)
+aggression = f(hunger, perceived_weakness, genome.aggression)
+reproductive = f(energy_surplus, age, genome.reproductive)</code>
+    <strong>Emergent emotions:</strong> Attachment (repeated social need satisfaction), Rivalry (repeated negative interactions), Grief (bonded entity dies, social need spikes).`
+  },
+  {
+    icon: '&#x1F9A0;', title: 'Entity Composition', color: 'var(--accent3)',
+    summary: 'Entities merge into multi-cellular organisms. Members specialize into roles: locomotion, sensing, attack, defense, digestion, reproduction.',
+    detail: `<strong>Merge process:</strong> New composite entity spawns with CompositeBody. Members lose independent position but keep genomes and memories. Capabilities are aggregated.<br><br>
+    <strong>Decomposition:</strong> Composite dies or resources scarce → members may survive independently.<br><br>
+    <strong>Over time:</strong> Some lineages evolve toward sensor specialization, others toward locomotion. True multi-cellular organisms emerge.`
+  },
+  {
+    icon: '&#x1F4E1;', title: 'Signals & Communication', color: 'var(--pink)',
+    summary: 'Entities emit signals (u8 type, no inherent meaning). Meanings emerge through co-evolution of emitters and receivers. Proto-language.',
+    detail: `<strong>Example emergence:</strong> Entity emits signal 3 when finding food + entities that approach on signal 3 → both survive better → signal 3 becomes "food here."<br><br>
+    <strong>Cultural divergence:</strong> Isolated populations develop different signal conventions — different "languages." Alarm calls, mating calls, territorial warnings all emerge from pressure.`
+  },
+  {
+    icon: '&#x1F528;', title: 'Tool Use & Construction', color: 'var(--orange)',
+    summary: 'Objects have material properties (hardness, sharpness, weight...). No predefined tool types. A "weapon" is anything with high sharpness + hardness.',
+    detail: `<code class="formula">attack_bonus = sharpness * hardness * sqrt(length) * sqrt(mass)
+defense_bonus = hardness * width * density
+carry_bonus = flexibility * width * (1 - density)
+harvest_bonus = sharpness * hardness</code>
+    <strong>Blueprints:</strong> Recipes encoded in genome (slow, genetic) or learned by observation (fast, cultural). One innovative entity can teach an entire tribe.<br><br>
+    <strong>Structures:</strong> Hard materials in a line → wall. Insulating enclosure → shelter. Planted resources → farm. All emergent from spatial arrangement + material properties.`
+  },
+  {
+    icon: '&#x1F4DC;', title: 'Narrative Engine', color: 'var(--yellow)',
+    summary: 'Auto-detects interesting entities and story arcs. Rivalry, alliance, migration, extinction, rise-to-power — all from event patterns.',
+    detail: `<code class="formula">significance = state_change * rarity * protagonist_relevance * irreversibility * relationship_involvement</code>
+    <strong>Tracked arcs:</strong> Rivalry (repeated combat), Alliance (sustained cooperation), Migration (group movement), Extinction (species → 0), Rise/Fall (territory/population gain/loss).<br><br>
+    <strong>Optional LLM narration:</strong> Feed arc events to Claude API, receive prose. Configurable styles: documentary, epic, journal, clinical.`
+  },
+  {
+    icon: '&#x1F30D;', title: 'Environment', color: 'var(--green)',
+    summary: 'Noise-generated terrain with biomes. Resources deplete and regrow. Climate shifts create pressure. Spatial hash for efficient queries.',
+    detail: `<strong>Biomes:</strong> Grassland, desert, water, forest, mountain. Affect movement speed and resource density. Different resource types per biome → trade incentives.<br><br>
+    <strong>Climate:</strong> Temperature cycles, seasonal variation, long-term drift. Periodic events: droughts, resource scarcity. Creates migration and adaptation pressure.<br><br>
+    <strong>Spatial index:</strong> Grid-based spatial hash for O(n*k) queries instead of O(n²). Separate structure grid for constructions.`
+  },
+  {
+    icon: '&#x1F3DB;', title: 'Civilization', color: 'var(--accent)',
+    summary: 'Emergent settlements from persistent clusters. Trade from resource heterogeneity. Hierarchy from social influence. No top-down design.',
+    detail: `<strong>Settlements:</strong> Clusters of structures + persistent population = detected as settlement. Named from founding entities.<br><br>
+    <strong>Trade:</strong> Different biomes → different resources → comparative advantage. Entities carry surplus between settlements. Trade routes emerge as frequently-traveled paths.<br><br>
+    <strong>Hierarchy:</strong> Highest social influence = de facto leader. Labor specialization from different BTs. Succession is natural.`
+  },
+];
+
+(function renderSubsystems() {
+  const el = document.getElementById('subsystem-grid');
+  el.innerHTML = subsystems.map((s, i) => `
+    <div class="subsystem-card" style="--card-color: ${s.color};" onclick="this.classList.toggle('expanded')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${s.color};border-radius:var(--radius) var(--radius) 0 0;"></div>
+      <span class="icon">${s.icon}</span>
+      <h3>${s.title}</h3>
+      <p>${s.summary}</p>
+      <div class="subsystem-detail">${s.detail}</div>
+    </div>
+  `).join('');
+})();
+
+// ── EMERGENCE TIMELINE ──
+const emergenceSteps = [
+  {
+    era: 'Era 1', color: 'var(--green)', title: 'Basic Life',
+    desc: 'Entities wander, eat, and die. Populations fluctuate based on food supply. Entities with better metabolism genes dominate.',
+    tags: ['Carrying capacity', 'Energy management', 'Trait variation']
+  },
+  {
+    era: 'Era 2', color: 'var(--accent)', title: 'Intelligent Behavior',
+    desc: 'Behavior trees replace hardcoded logic. Evolution via genetic programming creates novel strategies. Terrain creates niche pressure.',
+    tags: ['Foraging strategies', 'Risk assessment', 'Niche adaptation', 'Speciation']
+  },
+  {
+    era: 'Era 3', color: 'var(--teal)', title: 'Memory & Social World',
+    desc: 'Entities remember food locations and threats. Kin recognition forms. Predator-prey arms races emerge.',
+    tags: ['Learned routes', 'Threat avoidance', 'Attachment', 'Rivalry', 'Grief', 'Co-evolution']
+  },
+  {
+    era: 'Era 4', color: 'var(--accent3)', title: 'Multi-cellular Organisms',
+    desc: 'Entities merge into composites with specialized roles. Cell differentiation emerges through evolutionary pressure.',
+    tags: ['Sensor cells', 'Muscle cells', 'Digestion cells', 'Composite reproduction']
+  },
+  {
+    era: 'Era 5', color: 'var(--pink)', title: 'Society & Culture',
+    desc: 'Signals gain meaning through co-evolution. Tribes form from social bonds. Territory is defended. Knowledge spreads culturally, faster than genetics.',
+    tags: ['Proto-language', 'Alarm calls', 'Tribal identity', 'Cultural learning', 'Teaching']
+  },
+  {
+    era: 'Era 6', color: 'var(--orange)', title: 'Tool Use & Construction',
+    desc: 'Tools and structures emerge from material property combinations. Agriculture, shelters, roads. Cultural transmission accelerates technology.',
+    tags: ['Weapons', 'Shelters', 'Farms', 'Roads', 'Crafting', 'Blueprints']
+  },
+  {
+    era: 'Era 7', color: 'var(--yellow)', title: 'Narrative & History',
+    desc: 'The system auto-detects story arcs — rivalries, alliances, extinctions. Entity biographies and LLM-generated prose narration.',
+    tags: ['Story arcs', 'Biographies', 'History browser', 'AI narration']
+  },
+  {
+    era: 'Era 8', color: 'var(--text-dim)', title: 'Scale',
+    desc: '100k+ entities via multi-threaded simulation, LOD, and save/load. Multiple simultaneous viewer connections.',
+    tags: ['Multi-threaded', 'LOD simulation', 'Save/Load', 'Performance']
+  },
+  {
+    era: 'Era 9', color: 'var(--accent)', title: 'Civilization',
+    desc: 'Settlements, trade routes, warfare, hierarchy, and cultural identity emerge from the interplay of all prior systems.',
+    tags: ['Settlements', 'Trade', 'Warfare', 'Leadership', 'Specialization', 'NEAT']
+  },
+  {
+    era: 'Era 10', color: 'var(--accent2)', title: '3D World',
+    desc: 'Expansion from 2D to 3D. Height maps, caves, flight, swimming. Three.js renderer replacing PixiJS.',
+    tags: ['Height maps', 'Caves', 'Flight', 'Swimming', 'Three.js', 'Day/night']
+  },
+  {
+    era: 'Era 11', color: 'var(--accent3)', title: 'Open World',
+    desc: 'Infinite procedural world via chunks. Long-distance migration, multi-civilization encounters, seamless zoom world→entity.',
+    tags: ['Chunk system', 'Procedural gen', 'First contact', 'World-scale analytics']
+  },
+];
+
+(function renderEmergence() {
+  const el = document.getElementById('emergence-timeline');
+  el.innerHTML = emergenceSteps.map(s => `
+    <div class="emergence-item">
+      <div class="emergence-dot" style="background: ${s.color};"></div>
+      <span class="emergence-era" style="background: ${s.color}20; color: ${s.color};">${s.era}</span>
+      <h3>${s.title}</h3>
+      <p>${s.desc}</p>
+      <div class="emergence-examples">
+        ${s.tags.map(t => `<span class="emergence-tag">${t}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+})();
+
+// ── ROADMAP ──
+const eras = [
+  {
+    num: 1, title: 'Foundation', color: 'var(--green)',
+    desc: 'Entities exist in a 2D world, wander, eat, reproduce, and die. You can watch it in a browser.',
+    phases: [
+      { id: '1.1', name: 'Project Scaffolding', goal: 'Cargo workspace, hecs wrapper, tick loop, RNG, config, CLI' },
+      { id: '1.2', name: 'Primordial Soup', goal: 'Entities move, consume energy, and die. Random wander.' },
+      { id: '1.3', name: 'Food Web', goal: 'Resources exist, deplete, regrow. Entities eat. Spatial index.' },
+      { id: '1.4', name: 'Reproduction', goal: 'Asexual reproduction, genome mutation, species tracking, carrying capacity.' },
+      { id: '1.5', name: 'Event System', goal: 'SimEvent enum, EventLog, snapshot system.' },
+      { id: '1.6', name: 'Viewer Foundation', goal: 'Protobuf schema, WebSocket server, PixiJS + React viewer.' },
+    ]
+  },
+  {
+    num: 2, title: 'Intelligence', color: 'var(--accent)',
+    desc: 'Behavior trees, genetic programming evolution, terrain, and biomes.',
+    phases: [
+      { id: '2.1', name: 'Perception', goal: 'Sensor range, spatial queries, perceived entities. Delta streaming.' },
+      { id: '2.2', name: 'Behavior Tree Engine', goal: 'Custom BT engine: nodes, tick, actions, conditions.' },
+      { id: '2.3', name: 'Drives', goal: 'Hunger drive, homeostatic system, BT condition integration.' },
+      { id: '2.4', name: 'Evolution via GP', goal: 'BTs in genome, crossover, mutation, bloat control.' },
+      { id: '2.5', name: 'Terrain & Biomes', goal: 'Noise terrain, biomes, resource variation, environmental pressure.' },
+      { id: '2.6', name: 'Viewer Enhancement', goal: 'Terrain rendering, species colors, population charts, minimap.' },
+    ]
+  },
+  {
+    num: 3, title: 'Cognition', color: 'var(--teal)',
+    desc: 'Memory, social relationships, combat, predator-prey dynamics.',
+    phases: [
+      { id: '3.1', name: 'Memory', goal: 'Bounded ring buffer, evolved eviction, memory BT nodes.' },
+      { id: '3.2', name: 'Social World', goal: 'Relationships, kin recognition, social drive.' },
+      { id: '3.3', name: 'Combat', goal: 'Attack/damage system, fear drive, predator-prey arms race.' },
+      { id: '3.4', name: 'Viewer: Social', goal: 'Relationship graph, lineage tree, combat events.' },
+    ]
+  },
+  {
+    num: 4, title: 'Organism', color: 'var(--accent3)',
+    desc: 'Multi-cellular composition, cell specialization, composite reproduction.',
+    phases: [
+      { id: '4.1', name: 'Composition', goal: 'Entity merging, CompositeBody, CellRole, aggregate capabilities.' },
+      { id: '4.2', name: 'Specialization', goal: 'Role optimization, composite reproduction, leader BT.' },
+      { id: '4.3', name: 'Viewer: Composites', goal: 'Cluster rendering, member drill-down, composite stats.' },
+    ]
+  },
+  {
+    num: 5, title: 'Society', color: 'var(--pink)',
+    desc: 'Signals, tribes, territory, and cultural transmission.',
+    phases: [
+      { id: '5.1', name: 'Signals', goal: 'Signal emission/perception, evolved meanings, proto-language.' },
+      { id: '5.2', name: 'Tribes & Territory', goal: 'TribeId, territorial behavior, group combat, teaching.' },
+      { id: '5.3', name: 'Cultural Transmission', goal: 'Observation learning, knowledge transfer, dual inheritance.' },
+      { id: '5.4', name: 'Viewer: Society', goal: 'Signal rings, tribe boundaries, cultural visualization.' },
+    ]
+  },
+  {
+    num: 6, title: 'Tool Use & Construction', color: 'var(--orange)',
+    desc: 'Objects with material properties, tools, structures, crafting, agriculture.',
+    phases: [
+      { id: '6.1', name: 'Object System', goal: 'MaterialProperties, capability modifiers, inventory.' },
+      { id: '6.2', name: 'Tool Creation', goal: 'Crafting from raw materials, tool equipping, combat bonuses.' },
+      { id: '6.3', name: 'Structures', goal: 'Walls, shelters, placement, spatial index modification.' },
+      { id: '6.4', name: 'Blueprints', goal: 'Genetic + learned blueprints, cultural transmission of tech.' },
+      { id: '6.5', name: 'Agriculture', goal: 'Planting, tending, harvesting, farm knowledge.' },
+      { id: '6.6', name: 'Infrastructure', goal: 'Roads, storage, construction sites, collaborative building.' },
+    ]
+  },
+  {
+    num: 7, title: 'Narrative', color: 'var(--yellow)',
+    desc: 'Story arcs, biographies, history browser, LLM narration.',
+    phases: [
+      { id: '7.1', name: 'Event Significance', goal: 'Significance scoring, interesting entity tracking.' },
+      { id: '7.2', name: 'Arc Detection', goal: 'Pattern matching on event sequences, tension curves.' },
+      { id: '7.3', name: 'Biographies', goal: 'Entity life stories, chronological event display.' },
+      { id: '7.4', name: 'History Browser', goal: 'Timeline scrubbing, bookmarks, what-if forking.' },
+      { id: '7.5', name: 'LLM Narration', goal: 'Claude API integration, prose generation, configurable style.' },
+    ]
+  },
+  {
+    num: 8, title: 'Scale', color: 'var(--text-dim)',
+    desc: '100k+ entities, multi-threaded simulation, save/load, multiple viewers.',
+    phases: [
+      { id: '8.1', name: 'Performance', goal: 'Profiling, batch processing, spatial index tuning.' },
+      { id: '8.2', name: 'Multi-threaded', goal: 'World partitioning, rayon, thread-safe spatial index.' },
+      { id: '8.3', name: 'LOD Simulation', goal: 'Distant regions at lower fidelity.' },
+      { id: '8.4', name: 'Save/Load', goal: 'Full state serialization, bincode + zstd.' },
+      { id: '8.5', name: 'Multi-viewer', goal: 'Multiple simultaneous browser connections.' },
+    ]
+  },
+  {
+    num: 9, title: 'Civilization', color: 'var(--accent)',
+    desc: 'Settlements, trade, warfare, hierarchy, cultural identity.',
+    phases: [
+      { id: '9.1', name: 'Settlements', goal: 'Cluster detection, settlement stats, naming.' },
+      { id: '9.2', name: 'Resource Specialization', goal: 'Biome-specific resources, comparative advantage.' },
+      { id: '9.3', name: 'Trade', goal: 'Resource carrying, trade routes, value estimation.' },
+      { id: '9.4', name: 'Defense & Warfare', goal: 'Fortifications, group strategy, siege mechanics.' },
+      { id: '9.5', name: 'Hierarchy & Culture', goal: 'Leadership, labor specialization, cultural identity.' },
+      { id: '9.6', name: 'Viewer: Civilization', goal: 'Civilization-scale map, zoom world→entity.' },
+      { id: '9.7', name: 'NEAT Integration', goal: 'Neural network weights in BT nodes for nuanced decisions.' },
+    ]
+  },
+  {
+    num: 10, title: '3D World', color: 'var(--accent2)',
+    desc: '3D coordinates, height maps, caves, Three.js, flight, swimming.',
+    phases: [
+      { id: '10.1', name: '3D Coordinates', goal: 'Position3D, backward-compatible with 2D at Z=0.' },
+      { id: '10.2', name: 'Height Maps', goal: '3D noise terrain, elevation effects.' },
+      { id: '10.3', name: 'Caves', goal: '3D noise threshold → cave volumes, underground ecology.' },
+      { id: '10.4', name: 'Three.js Renderer', goal: 'Replace PixiJS, InstancedMesh for 100k+ entities.' },
+      { id: '10.5', name: '3D Entities', goal: '3D movement, spatial index (octree), flying/swimming.' },
+      { id: '10.6', name: 'Camera System', goal: '3D controls, cross-section views.' },
+      { id: '10.7', name: 'Water & Flight', goal: 'Buoyancy, underwater, aerial predation, gliding.' },
+      { id: '10.8', name: '3D Construction', goal: 'Multi-story structures, bridges, cave dwellings.' },
+      { id: '10.9', name: 'Lighting & Weather', goal: 'Day/night cycle, weather visualization.' },
+      { id: '10.10', name: 'Performance', goal: '3D spatial optimizations, frustum culling, LOD meshes.' },
+    ]
+  },
+  {
+    num: 11, title: 'Open World', color: 'var(--accent3)',
+    desc: 'Infinite procedural world, chunk system, multi-civilization encounters.',
+    phases: [
+      { id: '11.1', name: 'Chunk System', goal: 'Fixed-size chunks: Active, Dormant, Unloaded states.' },
+      { id: '11.2', name: 'Procedural Generation', goal: 'World seed, deterministic infinite terrain.' },
+      { id: '11.3', name: 'Chunk Loading', goal: 'Entity/viewer proximity activation, statistical dormant sim.' },
+      { id: '11.4', name: 'Long-distance Migration', goal: 'Species spread, colonization of new chunks.' },
+      { id: '11.5', name: 'Multi-civ Encounters', goal: 'First contact, language barriers, conflict or cooperation.' },
+      { id: '11.6', name: 'World Analytics', goal: 'World-scale metrics, seamless zoom levels.' },
+    ]
+  },
+];
+
+(function renderRoadmap() {
+  const el = document.getElementById('era-timeline');
+  el.innerHTML = eras.map((era, i) => `
+    <div class="era-block">
+      <div class="era-dot" style="background: ${era.color};"></div>
+      <div class="era-header" onclick="toggleEra(this)">
+        <span class="era-num" style="background: ${era.color}20; color: ${era.color};">Era ${era.num}</span>
+        <span class="era-title">${era.title}</span>
+        <span class="era-phases-count">${era.phases.length} phases</span>
+        <span class="era-chevron">&#9660;</span>
+      </div>
+      <div class="era-phases">
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.75rem; font-style:italic;">${era.desc}</p>
+        ${era.phases.map(p => `
+          <div class="phase-item">
+            <span class="phase-id">${p.id}</span>
+            <div>
+              <div class="phase-name">${p.name}</div>
+              <div class="phase-goal">${p.goal}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+})();
+
+function toggleEra(header) {
+  header.classList.toggle('expanded');
+  header.nextElementSibling.classList.toggle('expanded');
+}
+
+// ── ADRs ──
+const adrs = [
+  { id: 'ADR-0001', title: 'ECS Framework', decision: 'Use hecs — minimal, fast, no rendering baggage. Full control over tick loop for deterministic simulation.' },
+  { id: 'ADR-0002', title: 'Wire Protocol', decision: 'Protocol Buffers (prost + ts-proto) — language-neutral schema generates both Rust and TypeScript types from single .proto source.' },
+  { id: 'ADR-0003', title: 'Behavior Tree Engine', decision: 'Build custom (~300 LOC) — must be serializable, evolvable via GP, and inspectable. No existing crate supports all three.' },
+  { id: 'ADR-0004', title: 'Simulation Architecture', decision: 'Tick-based deterministic with event sourcing — seeded RNG, fixed system order, append-only event log, periodic snapshots.' },
+  { id: 'ADR-0005', title: 'Visualization Stack', decision: 'PixiJS v8 + React + WebSocket — WebGL for 100k+ sprites, migration path to Three.js for future 3D.' },
+  { id: 'ADR-0006', title: 'Memory System', decision: 'Bounded entity memory with evolved eviction — capacity and eviction weights in genome, subject to natural selection.' },
+  { id: 'ADR-0007', title: 'Evolution Mechanism', decision: 'Continuous evolution via genetic programming — BT crossover, parameter + structural mutation, bloat control.' },
+  { id: 'ADR-0008', title: 'Entity Composition', decision: 'Parent-child composition model — new composite entity wraps members, role-based specialization, decomposition on death.' },
+  { id: 'ADR-0009', title: 'Homeostatic Drives', decision: 'Drive system for emergent emotions — drives computed from state, BT conditions check thresholds, emotions emerge from drive+memory+BT.' },
+  { id: 'ADR-0010', title: 'Tool Use & Construction', decision: 'Emergent tools via material properties — no predefined types, capability from property combinations, genetic + cultural blueprints.' },
+];
+
+(function renderADRs() {
+  const el = document.getElementById('adr-list');
+  el.innerHTML = adrs.map(a => `
+    <div class="adr-card">
+      <div class="adr-id">${a.id}</div>
+      <div class="adr-title">${a.title}</div>
+      <div class="adr-decision">${a.decision}</div>
+      <span class="adr-status">Accepted</span>
+    </div>
+  `).join('');
+})();
+
+// ── PRINCIPLES ──
+const principles = [
+  {
+    title: 'Environmental Pressure, Not Hard-Coded Behavior',
+    desc: 'Never code cooperation, fear, or culture. Create conditions where those behaviors have survival advantages. Let natural selection do the design work.',
+    color: 'var(--green)'
+  },
+  {
+    title: 'Determinism',
+    desc: 'Seeded RNG per system. Same seed = same simulation. Every run is reproducible. Every bug is reproducible. Enables replay, debugging, and what-if comparison.',
+    color: 'var(--accent)'
+  },
+  {
+    title: 'Event Sourcing',
+    desc: 'The event log is the source of truth. Any question about history can be answered by replaying events. Snapshots are optimization checkpoints.',
+    color: 'var(--accent2)'
+  },
+  {
+    title: 'Separation of Simulation and Presentation',
+    desc: 'The engine knows nothing about rendering. Multiple viewers can connect. The simulation runs headless if needed. Engine produces events, viewers consume.',
+    color: 'var(--accent3)'
+  },
+  {
+    title: 'Composition Over Inheritance',
+    desc: 'ECS components, not class hierarchies. New behaviors are new components + systems, not modifications to existing code. Plain structs, no methods.',
+    color: 'var(--pink)'
+  },
+  {
+    title: 'Remember the Complex Solution',
+    desc: 'Each phase delivers working software. Each component\'s interface is designed for the final vision even when current usage is simple. Phase 1\'s Genome has room for BT genes.',
+    color: 'var(--orange)'
+  },
+];
+
+(function renderPrinciples() {
+  const el = document.getElementById('principles-grid');
+  el.innerHTML = principles.map(p => `
+    <div class="principle-card" style="border-left-color: ${p.color};">
+      <h3>${p.title}</h3>
+      <p>${p.desc}</p>
+    </div>
+  `).join('');
+})();
+</script>
+
+</body>
+</html>

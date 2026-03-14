@@ -1,0 +1,16 @@
+[     420ms] [WARNING] [.WebGL-0x32400116c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[     492ms] [WARNING] [.WebGL-0x32400116c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[     678ms] [WARNING] [.WebGL-0x32400116c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[     746ms] [WARNING] [.WebGL-0x32400116c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://localhost:5173/:0
+[  125885ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  125885ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  125965ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  125970ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  128259ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  128259ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  128344ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  128345ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  130578ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  130578ms] [ERROR] WebSocket connection to 'ws://localhost:9001/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/net/websocket.ts?t=1773482722404:26
+[  130654ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509
+[  130655ms] [ERROR] WebSocket error: Event @ http://localhost:5173/@vite/client:509

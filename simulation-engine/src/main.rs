@@ -1,0 +1,193 @@
+use clap::Parser;
+use crossbeam_channel::{Receiver, unbounded};
+use tracing::info;
+
+use simulation_engine::core::config::SimulationConfig;
+use simulation_engine::core::tick;
+use simulation_engine::core::world::SimulationWorld;
+use simulation_engine::net::bridge;
+use simulation_engine::net::server::{ServerState, ViewerCommand};
+
+/// Autonomy: emergent life simulation engine
+#[derive(Parser, Debug)]
+#[command(name = "autonomy", version, about)]
+struct Cli {
+    /// Master seed for deterministic simulation
+    #[arg(long, default_value_t = 42)]
+    seed: u64,
+
+    /// World width in simulation units
+    #[arg(long, default_value_t = 500.0)]
+    world_width: f64,
+
+    /// World height in simulation units
+    #[arg(long, default_value_t = 500.0)]
+    world_height: f64,
+
+    /// Number of entities to spawn at start
+    #[arg(long, default_value_t = 100)]
+    initial_entities: u32,
+
+    /// Target ticks per second
+    #[arg(long, default_value_t = 60)]
+    tick_rate: u32,
+
+    /// Run without viewer/network (headless mode)
+    #[arg(long, default_value_t = false)]
+    headless: bool,
+
+    /// Path to JSON config file (overrides CLI args)
+    #[arg(long)]
+    config: Option<String>,
+
+    /// WebSocket server port
+    #[arg(long, default_value_t = 9001)]
+    port: u16,
+}
+
+fn main() {
+    init_logging();
+
+    let cli = Cli::parse();
+    let config = build_config(&cli);
+    let port = cli.port;
+
+    info!(
+        seed = config.seed,
+        width = config.world_width,
+        height = config.world_height,
+        entities = config.initial_entity_count,
+        tick_rate = config.tick_rate,
+        headless = config.headless,
+        "starting simulation"
+    );
+
+    let mut world = SimulationWorld::new(config);
+    simulation_engine::environment::spawning::scatter_resources(&mut world);
+    simulation_engine::core::spawning::spawn_initial_population(&mut world);
+
+    let (command_tx, command_rx) = unbounded();
+    let server_state = ServerState::new(command_tx);
+
+    // Send initial snapshot so early-connecting clients get state.
+    bridge::update_snapshot(&world, &server_state);
+
+    if !world.config.headless {
+        let server_state_clone = server_state.clone();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(simulation_engine::net::server::start_server(
+                server_state_clone,
+                port,
+            ));
+        });
+    }
+
+    run_loop(&mut world, &server_state, &command_rx);
+}
+
+fn init_logging() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+}
+
+fn build_config(cli: &Cli) -> SimulationConfig {
+    if let Some(path) = &cli.config {
+        load_config_file(path)
+    } else {
+        config_from_cli(cli)
+    }
+}
+
+fn load_config_file(path: &str) -> SimulationConfig {
+    let contents = std::fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("failed to read config file '{}': {}", path, e));
+    serde_json::from_str(&contents)
+        .unwrap_or_else(|e| panic!("failed to parse config file '{}': {}", path, e))
+}
+
+fn config_from_cli(cli: &Cli) -> SimulationConfig {
+    SimulationConfig {
+        world_width: cli.world_width,
+        world_height: cli.world_height,
+        seed: cli.seed,
+        initial_entity_count: cli.initial_entities,
+        tick_rate: cli.tick_rate,
+        headless: cli.headless,
+    }
+}
+
+/// Max broadcast rate to viewers (Hz). At high sim speeds we skip
+/// intermediate ticks to avoid overwhelming the WebSocket/browser.
+/// 15Hz is sufficient for smooth visual updates (canvas re-renders
+/// at requestAnimationFrame rate regardless).
+const MAX_BROADCAST_HZ: f64 = 15.0;
+
+fn run_loop(world: &mut SimulationWorld, server_state: &ServerState, command_rx: &Receiver<ViewerCommand>) {
+    let base_tick_duration = std::time::Duration::from_secs_f64(1.0 / world.config.tick_rate as f64);
+    let min_broadcast_interval = std::time::Duration::from_secs_f64(1.0 / MAX_BROADCAST_HZ);
+    let mut last_broadcast = std::time::Instant::now();
+    let mut diff_engine = simulation_engine::net::diff::DiffEngine::new();
+
+    loop {
+        let start = std::time::Instant::now();
+
+        // Drain all pending commands.
+        while let Ok(cmd) = command_rx.try_recv() {
+            match cmd {
+                ViewerCommand::Pause => {
+                    world.paused = true;
+                    info!("simulation paused");
+                }
+                ViewerCommand::Resume => {
+                    world.paused = false;
+                    info!("simulation resumed");
+                }
+                ViewerCommand::SetSpeed(speed) => {
+                    world.speed_multiplier = speed.clamp(0.1, 100.0);
+                    info!(speed = world.speed_multiplier, "speed changed");
+                }
+                ViewerCommand::SubscribeViewport(bounds) => {
+                    if let Ok(mut vp) = server_state.viewport.write() {
+                        *vp = bounds;
+                    }
+                }
+            }
+        }
+
+        if !world.paused {
+            tick::tick(world);
+
+            // Throttle broadcasts: only send at most MAX_BROADCAST_HZ per second
+            // to avoid overwhelming the viewer at high sim speeds.
+            let now = std::time::Instant::now();
+            if now.duration_since(last_broadcast) >= min_broadcast_interval {
+                bridge::broadcast_diff_tick(world, server_state, &mut diff_engine);
+                last_broadcast = now;
+            }
+
+            // Update snapshot periodically for new client connections.
+            if world.tick % 100 == 0 {
+                bridge::update_snapshot(world, server_state);
+            }
+
+            if world.tick % 1000 == 0 {
+                info!(
+                    tick = world.tick,
+                    entities = world.entity_count(),
+                    "progress"
+                );
+            }
+        }
+
+        let tick_duration = base_tick_duration.div_f64(world.speed_multiplier);
+        let elapsed = start.elapsed();
+        if elapsed < tick_duration {
+            std::thread::sleep(tick_duration - elapsed);
+        }
+    }
+}

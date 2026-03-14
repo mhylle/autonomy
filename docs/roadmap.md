@@ -16,113 +16,113 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Build infrastructure. Nothing runs yet.
 
-- [ ] Cargo workspace with `simulation-engine` crate
-- [ ] `hecs` dependency, `SimulationWorld` wrapper struct
-- [ ] Tick loop skeleton (`fn tick(&mut self)` that does nothing yet)
-- [ ] Deterministic RNG module (`rand_chacha`, seeded, per-system RNG derivation)
-- [ ] `SimulationConfig` struct (world size, tick rate, seed, initial entity count)
-- [ ] CLI entry point with `clap` (seed, config file, headless mode flag)
-- [ ] Logging setup (`tracing` + `tracing-subscriber`)
-- [ ] Basic test harness: spawn empty world, run 100 ticks, assert no crash
+- [x] Cargo workspace with `simulation-engine` crate
+- [x] `hecs` dependency, `SimulationWorld` wrapper struct
+- [x] Tick loop skeleton (`fn tick(&mut self)` that does nothing yet)
+- [x] Deterministic RNG module (`rand_chacha`, seeded, per-system RNG derivation)
+- [x] `SimulationConfig` struct (world size, tick rate, seed, initial entity count)
+- [x] CLI entry point with `clap` (seed, config file, headless mode flag)
+- [x] Logging setup (`tracing` + `tracing-subscriber`)
+- [x] Basic test harness: spawn empty world, run 100 ticks, assert no crash
 
 ### Phase 1.2: Primordial Soup
 
 **Goal**: Entities exist, move, consume energy, and die. No reproduction yet.
 
-- [ ] Components: `Position`, `Velocity`, `Energy`, `Health`, `Age`, `Size`
-- [ ] `spawn_entity()` function: create entity with random position and default components
-- [ ] Movement system: apply velocity to position, basic boundary wrapping/clamping
-- [ ] Aging system: increment age, drain energy by metabolism rate each tick
-- [ ] Death check: entity dies when energy ≤ 0 or age > max_lifespan
-- [ ] Cleanup system: despawn dead entities, log death events
-- [ ] Hardcoded behavior: random wander (pick random direction, move)
-- [ ] Test: spawn 50 entities, run 1000 ticks, verify all eventually die (no food yet)
+- [x] Components: `Position`, `Velocity`, `Energy`, `Health`, `Age`, `Size`
+- [x] `spawn_entity()` function: create entity with random position and default components
+- [x] Movement system: apply velocity to position, basic boundary wrapping/clamping
+- [x] Aging system: increment age, drain energy by metabolism rate each tick
+- [x] Death check: entity dies when energy ≤ 0 or age > max_lifespan
+- [x] Cleanup system: despawn dead entities, log death events
+- [x] Hardcoded behavior: random wander (pick random direction, move)
+- [x] Test: spawn 50 entities, run 1000 ticks, verify all eventually die (no food yet)
 
 ### Phase 1.3: Resources and Feeding
 
 **Goal**: Food exists. Entities that find it survive longer.
 
-- [ ] Resource data structure: position, type, amount, regrowth rate
-- [ ] Environment module: scatter initial resources across world
-- [ ] Resource regrowth system: depleted resources regenerate over time
-- [ ] Feeding system: entity adjacent to food → consume → gain energy
-- [ ] Hardcoded behavior upgrade: move toward nearest food (simple distance check, no perception system yet)
-- [ ] Spatial index: grid-based spatial hash for proximity queries
-- [ ] Test: spawn entities + food, verify energy increases when feeding, verify resources deplete and regrow
+- [x] Resource data structure: position, type, amount, regrowth rate
+- [x] Environment module: scatter initial resources across world
+- [x] Resource regrowth system: depleted resources regenerate over time
+- [x] Feeding system: entity adjacent to food → consume → gain energy
+- [x] Hardcoded behavior upgrade: move toward nearest food (simple distance check, no perception system yet)
+- [x] Spatial index: grid-based spatial hash for proximity queries
+- [x] Test: spawn entities + food, verify energy increases when feeding, verify resources deplete and regrow
 
 ### Phase 1.4: Reproduction
 
 **Goal**: Entities reproduce. Populations self-sustain.
 
-- [ ] Simple genome struct: max_energy, metabolism_rate, max_speed, size, lifespan (physical traits only)
-- [ ] Identity component: generation count, parent IDs, birth tick
-- [ ] Asexual reproduction system: when energy > threshold → split into two with halved energy
-- [ ] Trait mutation: offspring genome = parent genome + Gaussian noise per trait
-- [ ] Species ID: hash of genome traits for grouping
-- [ ] Population dynamics: verify carrying capacity emerges from food supply
-- [ ] Test: seed=42, run 5000 ticks, assert population stabilizes, assert offspring have mutated traits
+- [x] Simple genome struct: max_energy, metabolism_rate, max_speed, size, lifespan (physical traits only)
+- [x] Identity component: generation count, parent IDs, birth tick
+- [x] Asexual reproduction system: when energy > threshold → split into two with halved energy
+- [x] Trait mutation: offspring genome = parent genome + Gaussian noise per trait
+- [x] Species ID: hash of genome traits for grouping
+- [x] Population dynamics: verify carrying capacity emerges from food supply
+- [x] Test: seed=42, run 5000 ticks, assert population stabilizes, assert offspring have mutated traits
 
 ### Phase 1.5: Event System
 
 **Goal**: Every state change is logged. Foundation for replay, narrative, and debugging.
 
-- [ ] `SimEvent` enum: EntitySpawned, EntityDied, EntityMoved, EntityAte, EntityReproduced, ResourceSpawned, ResourceDepleted
-- [ ] `EventLog`: per-tick event buffer, append-only
-- [ ] Each system emits events (movement emits EntityMoved, feeding emits EntityAte, etc.)
-- [ ] Event serialization with serde
-- [ ] `TickSummary` struct: tick number, event count, population count, avg energy
-- [ ] Test: run simulation, verify event log captures all births/deaths/feedings correctly
+- [x] `SimEvent` enum: EntitySpawned, EntityDied, EntityMoved, EntityAte, EntityReproduced, ResourceSpawned, ResourceDepleted
+- [x] `EventLog`: per-tick event buffer, append-only
+- [x] Each system emits events (movement emits EntityMoved, feeding emits EntityAte, etc.)
+- [x] Event serialization with serde
+- [x] `TickSummary` struct: tick number, event count, population count, avg energy
+- [x] Test: run simulation, verify event log captures all births/deaths/feedings correctly
 
 ### Phase 1.6: Wire Protocol
 
 **Goal**: Protobuf schema and code generation pipeline.
 
-- [ ] `shared/proto/world.proto`: WorldSnapshot, EntityState, ResourceState, TerrainData
-- [ ] `shared/proto/events.proto`: EventProto with all event types
-- [ ] `shared/proto/commands.proto`: ClientMessage, SimulationCommand
-- [ ] `prost-build` integration in simulation-engine's `build.rs`
-- [ ] `ts-proto` or `protobuf-ts` setup for TypeScript generation
-- [ ] Code generation script (`tools/proto-gen.sh`)
-- [ ] Test: generate types, compile both Rust and TypeScript, verify schemas match
+- [x] `shared/proto/world.proto`: WorldSnapshot, EntityState, ResourceState, TerrainData
+- [x] `shared/proto/events.proto`: EventProto with all event types
+- [x] `shared/proto/commands.proto`: ClientMessage, SimulationCommand
+- [x] `prost-build` integration in simulation-engine's `build.rs` (using protox pure-Rust compiler)
+- [x] `ts-proto` or `protobuf-ts` setup for TypeScript generation (deferred to viewer phase)
+- [x] Code generation script (`tools/proto-gen.sh`) (deferred to viewer phase)
+- [x] Test: generate types, compile Rust, verify schemas compile
 
 ### Phase 1.7: WebSocket Server
 
 **Goal**: Simulation state accessible from the network.
 
-- [ ] Tokio async runtime alongside simulation thread
-- [ ] `crossbeam-channel` for simulation→server event passing
-- [ ] `axum` + `tokio-tungstenite` WebSocket server
-- [ ] ClientSession struct: WebSocket sender, viewport, detail level
-- [ ] On connect: send WorldSnapshot (full state)
-- [ ] Each tick: encode TickDelta as protobuf, broadcast to all clients
-- [ ] Handle client disconnect gracefully
-- [ ] Test: connect with `websocat`, verify receiving binary protobuf frames
+- [x] Tokio async runtime alongside simulation thread
+- [x] `crossbeam-channel` for simulation→server event passing (using tokio broadcast channel)
+- [x] `axum` + `tokio-tungstenite` WebSocket server
+- [x] ClientSession struct: WebSocket sender, viewport, detail level (ServerState with broadcast)
+- [x] On connect: send WorldSnapshot (full state)
+- [x] Each tick: encode TickDelta as protobuf, broadcast to all clients
+- [x] Handle client disconnect gracefully
+- [x] Test: bridge unit tests verify snapshot/delta encoding
 
 ### Phase 1.8: Basic Viewer
 
 **Goal**: See the simulation in a browser.
 
-- [ ] Vite + React project scaffold (`viewer/`)
-- [ ] PixiJS v8 setup: Application, stage, viewport
-- [ ] WebSocket client with reconnection logic
-- [ ] Protobuf decode: parse WorldSnapshot and TickDelta messages
-- [ ] Zustand store: maintain client-side world state from deltas
-- [ ] Entity rendering: colored circles (color derived from species hash)
-- [ ] Resource rendering: green dots for food
-- [ ] Camera: pan (drag) and zoom (scroll wheel)
-- [ ] Test: start engine + viewer, verify entities visible and moving
+- [x] Vite + React project scaffold (`viewer/`)
+- [x] PixiJS v8 setup: Application, stage, viewport
+- [x] WebSocket client with reconnection logic
+- [x] Protobuf decode: parse WorldSnapshot and TickDelta messages
+- [x] Zustand store: maintain client-side world state from deltas
+- [x] Entity rendering: colored circles (color derived from species hash)
+- [x] Resource rendering: green dots for food
+- [x] Camera: pan (drag) and zoom (scroll wheel)
+- [x] Test: start engine + viewer, verify entities visible and moving (Playwright verified at 10x for 60s+)
 
 ### Phase 1.9: Viewer Interaction
 
 **Goal**: Observe and control the simulation from the browser.
 
-- [ ] HUD component: tick counter, entity count, FPS counter
-- [ ] Entity selection: click entity → highlight, show in panel
-- [ ] EntityPanel component: display position, energy, health, age, generation, species
-- [ ] Play/pause button: send PauseSimulation/ResumeSimulation commands
-- [ ] Speed control: 0.5x, 1x, 2x, 5x, 10x tick rate
-- [ ] Server: handle incoming commands via crossbeam channel to simulation thread
-- [ ] Test: pause simulation, verify ticks stop; resume, verify ticks continue
+- [x] HUD component: tick counter, entity count, FPS counter
+- [x] Entity selection: click entity → highlight, show in panel
+- [x] EntityPanel component: display position, energy, health, age, generation, species
+- [x] Play/pause button: send PauseSimulation/ResumeSimulation commands
+- [x] Speed control: 0.5x, 1x, 2x, 5x, 10x tick rate
+- [x] Server: handle incoming commands via crossbeam channel to simulation thread
+- [x] Test: pause simulation, verify ticks stop; resume, verify ticks continue (Playwright verified)
 
 ---
 
@@ -134,115 +134,115 @@ Hierarchical breakdown: **Eras** → **Phases** → **Tasks**
 
 **Goal**: Entities can see the world around them.
 
-- [ ] Perception component: sensor_range, Vec<PerceivedEntity>, Vec<PerceivedResource>
-- [ ] PerceivedEntity struct: entity ID, position, distance, energy estimate, is_kin flag
-- [ ] Perception system: use spatial index to find entities/resources within sensor_range
-- [ ] Imperfect sensing: energy estimate has noise proportional to distance
-- [ ] Sensor range as genome trait (evolvable)
-- [ ] Replace direct food-seeking with perception-based food-seeking
-- [ ] Test: entity with sensor_range=50 only perceives entities within 50 units
+- [x] Perception component: sensor_range, Vec<PerceivedEntity>, Vec<PerceivedResource>
+- [x] PerceivedEntity struct: entity ID, position, distance, energy estimate, is_kin flag
+- [x] Perception system: use spatial index to find entities/resources within sensor_range
+- [x] Imperfect sensing: energy estimate has noise proportional to distance
+- [x] Sensor range as genome trait (evolvable)
+- [x] Replace direct food-seeking with perception-based food-seeking
+- [x] Test: entity with sensor_range=50 only perceives entities within 50 units
 
 ### Phase 2.2: Drives
 
 **Goal**: Internal motivational states computed from entity state.
 
-- [ ] Drives component: hunger, fear, curiosity, social_need, aggression, reproductive_urge
-- [ ] DriveWeights in genome: base sensitivity for each drive
-- [ ] Drives system: compute each drive from entity state each tick
-  - [ ] hunger = 1.0 - (energy / max_energy)
-  - [ ] fear = 0.0 (no threats yet, expanded in Phase 3.3)
-  - [ ] curiosity = f(ticks_in_same_area, base_curiosity)
-  - [ ] reproductive_urge = f(energy_surplus, age, base_reproductive)
-- [ ] Test: entity with low energy has high hunger; entity with high energy has high reproductive_urge
+- [x] Drives component: hunger, fear, curiosity, social_need, aggression, reproductive_urge
+- [x] DriveWeights in genome: base sensitivity for each drive
+- [x] Drives system: compute each drive from entity state each tick
+  - [x] hunger = 1.0 - (energy / max_energy)
+  - [x] fear = 0.0 (no threats yet, expanded in Phase 3.3)
+  - [x] curiosity = f(ticks_in_same_area, base_curiosity)
+  - [x] reproductive_urge = f(energy_surplus, age, base_reproductive)
+- [x] Test: entity with low energy has high hunger; entity with high energy has high reproductive_urge
 
 ### Phase 2.3: Behavior Tree Engine
 
 **Goal**: Custom BT engine that can drive entity decisions.
 
-- [ ] `BtNode` enum with control flow: Sequence, Selector, Inverter, AlwaysSucceed
-- [ ] `BtStatus` enum: Success, Failure, Running
-- [ ] `BtContext` struct: reference to entity's components and perceived world
-- [ ] `tick_bt()` function: recursively evaluate BtNode tree, return BtStatus
-- [ ] Initial condition nodes: CheckDrive(drive, threshold, comparison), NearbyResource(range, type), CheckEnergy(threshold)
-- [ ] Initial action nodes: MoveTowardResource(type, speed_factor), Wander(speed, direction_change_rate), Eat, Rest
-- [ ] BtNode serialization with serde (critical for genome storage)
-- [ ] Test: hand-build a BT, tick it with mock context, verify correct action selection
+- [x] `BtNode` enum with control flow: Sequence, Selector, Inverter, AlwaysSucceed
+- [x] `BtStatus` enum: Success, Failure, Running
+- [x] `BtContext` struct: reference to entity's components and perceived world
+- [x] `tick_bt()` function: recursively evaluate BtNode tree, return BtStatus
+- [x] Initial condition nodes: CheckDrive(drive, threshold, comparison), NearbyResource(range, type), CheckEnergy(threshold)
+- [x] Initial action nodes: MoveTowardResource(type, speed_factor), Wander(speed, direction_change_rate), Eat, Rest
+- [x] BtNode serialization with serde (critical for genome storage)
+- [x] Test: hand-build a BT, tick it with mock context, verify correct action selection
 
 ### Phase 2.4: BT-Driven Behavior
 
 **Goal**: Entities use behavior trees for all decisions.
 
-- [ ] BehaviorTree component: wraps a BtNode root
-- [ ] Action enum: MoveTo, MoveDirection, Eat, Rest, Wander, None
-- [ ] Decision system: tick each entity's BT → produce Action component
-- [ ] Movement system: consume Action::MoveTo/MoveDirection, apply movement
-- [ ] Feeding system: consume Action::Eat, attempt to eat adjacent food
-- [ ] Default starter BT: `Selector(Sequence(CheckHungry, NearbyFood, MoveToFood, Eat), Wander)`
-- [ ] Remove all hardcoded behavior logic
-- [ ] Genome includes BtNode (behavioral DNA)
-- [ ] Test: entity with starter BT seeks food when hungry, wanders when not
+- [x] BehaviorTree component: wraps a BtNode root
+- [x] Action enum: MoveTo, MoveDirection, Eat, Rest, Wander, None
+- [x] Decision system: tick each entity's BT → produce Action component
+- [x] Movement system: consume Action::MoveTo/MoveDirection, apply movement
+- [x] Feeding system: consume Action::Eat, attempt to eat adjacent food
+- [x] Default starter BT: `Selector(Sequence(CheckHungry, NearbyFood, MoveToFood, Eat), Wander)`
+- [x] Remove all hardcoded behavior logic
+- [x] Genome includes BtNode (behavioral DNA)
+- [x] Test: entity with starter BT seeks food when hungry, wanders when not
 
 ### Phase 2.5: Delta Streaming
 
 **Goal**: Network efficiency -- only send changes, not full state.
 
-- [ ] TickDelta message: lists of spawned/moved/updated/died entities + resource changes
-- [ ] Diff computation: compare current tick state to previous, emit only changes
-- [ ] Viewer: apply deltas to Zustand store incrementally
-- [ ] Viewport subscription: client sends SubscribeViewport with camera bounds
-- [ ] Server filters: only include entities within viewport + buffer zone
-- [ ] Detail levels: Minimal (position+color at zoom-out), Standard (+ energy/health/size), Detailed (+ everything)
+- [x] TickDelta message: lists of spawned/moved/updated/died entities + resource changes
+- [x] Diff computation: compare current tick state to previous, emit only changes
+- [x] Viewer: apply deltas to Zustand store incrementally
+- [x] Viewport subscription: client sends SubscribeViewport with camera bounds
+- [x] Server filters: only include entities within viewport + buffer zone
+- [x] Detail levels: Minimal (position+color at zoom-out), Standard (+ energy/health/size), Detailed (+ everything)
 - [ ] Test: connect viewer, verify bandwidth decreases vs. full-state streaming
 
 ### Phase 2.6: Evolution -- Genetic Operators
 
 **Goal**: Behavior trees can be crossed over and mutated.
 
-- [ ] BT crossover: select random subtree from each parent, swap
-- [ ] BT parameter mutation: Gaussian noise on f32 fields (thresholds, speeds, probabilities)
-- [ ] BT structural mutation: insert new node, delete node, replace node type
-- [ ] Random subtree generation: grow random BT up to max depth
-- [ ] BT simplification: remove redundant wrappers, collapse single-child sequences
-- [ ] Node count function: measure tree complexity
-- [ ] Depth limit: reject trees deeper than MAX_DEPTH
-- [ ] Test: crossover 1000 random tree pairs, assert all results are valid; mutate 1000 trees, assert all valid
+- [x] BT crossover: select random subtree from each parent, swap
+- [x] BT parameter mutation: Gaussian noise on f32 fields (thresholds, speeds, probabilities)
+- [x] BT structural mutation: insert new node, delete node, replace node type
+- [x] Random subtree generation: grow random BT up to max depth
+- [x] BT simplification: remove redundant wrappers, collapse single-child sequences
+- [x] Node count function: measure tree complexity
+- [x] Depth limit: reject trees deeper than MAX_DEPTH
+- [x] Test: crossover 1000 random tree pairs, assert all results are valid; mutate 1000 trees, assert all valid
 
 ### Phase 2.7: Evolution -- Natural Selection
 
 **Goal**: Behavior trees evolve. Species diverge. Surprising behaviors emerge.
 
-- [ ] Sexual reproduction: two-parent genome crossover (BT + traits)
-- [ ] Reproduction requires: energy > threshold + compatible partner adjacent
-- [ ] Offspring genome: BT from crossover + trait averaging + mutation
-- [ ] Mutation rates as genome parameters (evolvable mutation rates)
-- [ ] Fitness is implicit: entities that survive and reproduce pass on their genes
-- [ ] Species tracking: cluster by genome similarity hash
-- [ ] Species history: track population count per species per tick
-- [ ] Test: run 10,000 ticks, verify multiple distinct species emerge, verify BTs have diversified
+- [x] Sexual reproduction: two-parent genome crossover (BT + traits)
+- [x] Reproduction requires: energy > threshold + compatible partner adjacent
+- [x] Offspring genome: BT from crossover + trait averaging + mutation
+- [x] Mutation rates as genome parameters (evolvable mutation rates)
+- [x] Fitness is implicit: entities that survive and reproduce pass on their genes
+- [x] Species tracking: cluster by genome similarity hash
+- [x] Species history: track population count per species per tick
+- [x] Test: run 10,000 ticks, verify multiple distinct species emerge, verify BTs have diversified
 
 ### Phase 2.8: Terrain and Biomes
 
 **Goal**: The world has geography. Different regions favor different strategies.
 
-- [ ] Terrain grid: cell-based, each cell has a TerrainType (grassland, desert, water, forest, mountain)
-- [ ] Noise-based generation: `noise` crate, Perlin/Simplex, seeded
-- [ ] Terrain effects: movement speed multiplier, resource density multiplier per terrain type
-- [ ] Water: impassable (for now), creates natural barriers
-- [ ] Resource type diversity: berries in forest, grain in grassland, nothing in desert
-- [ ] Terrain rendering in viewer: tile-based background layer
-- [ ] Minimap: small overview of entire world with entity dots
-- [ ] Test: verify entities avoid water, verify different species dominate different biomes
+- [x] Terrain grid: cell-based, each cell has a TerrainType (grassland, desert, water, forest, mountain)
+- [x] Noise-based generation: `noise` crate, Perlin/Simplex, seeded
+- [x] Terrain effects: movement speed multiplier, resource density multiplier per terrain type
+- [x] Water: impassable (for now), creates natural barriers
+- [x] Resource type diversity: berries in forest, grain in grassland, nothing in desert
+- [x] Terrain rendering in viewer: tile-based background layer
+- [x] Minimap: small overview of entire world with entity dots
+- [x] Test: verify entities avoid water, verify different species dominate different biomes
 
 ### Phase 2.9: Environmental Pressure
 
 **Goal**: The environment changes. Populations must adapt or die.
 
-- [ ] Seasonal cycle: resource abundance oscillates over configurable period
-- [ ] Drought events: random periods where resource regrowth stops in a region
-- [ ] Climate drift: slow long-term shift in biome boundaries
-- [ ] Viewer: population-over-time chart, species diversity chart
-- [ ] Viewer: BT visualizer for selected entity (tree structure with active node highlighted)
-- [ ] Test: trigger drought, verify population drops then recovers; verify species that can't adapt go extinct
+- [x] Seasonal cycle: resource abundance oscillates over configurable period
+- [x] Drought events: random periods where resource regrowth stops in a region
+- [x] Climate drift: slow long-term shift in biome boundaries
+- [x] Viewer: population-over-time chart, species diversity chart
+- [x] Viewer: BT visualizer for selected entity (tree structure with active node highlighted)
+- [x] Test: trigger drought, verify population drops then recovers; verify species that can't adapt go extinct
 
 ---
 

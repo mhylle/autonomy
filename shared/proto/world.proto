@@ -1,0 +1,54 @@
+syntax = "proto3";
+package autonomy;
+
+message Vec2 {
+    double x = 1;
+    double y = 2;
+}
+
+message EntityState {
+    uint64 id = 1;
+    Vec2 position = 2;
+    double energy = 3;
+    double max_energy = 4;
+    double health = 5;
+    double max_health = 6;
+    uint64 age = 7;
+    uint64 max_lifespan = 8;
+    double size = 9;
+    uint64 species_id = 10;
+    uint32 generation = 11;
+}
+
+message ResourceState {
+    uint64 id = 1;
+    Vec2 position = 2;
+    string resource_type = 3;
+    double amount = 4;
+    double max_amount = 5;
+}
+
+message TerrainGrid {
+    uint32 cols = 1;
+    uint32 rows = 2;
+    double cell_size = 3;
+    repeated int32 types = 4;
+}
+
+message WorldSnapshot {
+    uint64 tick = 1;
+    repeated EntityState entities = 2;
+    repeated ResourceState resources = 3;
+    double world_width = 4;
+    double world_height = 5;
+    TerrainGrid terrain = 6;
+}
+
+message TickDelta {
+    uint64 tick = 1;
+    repeated EntityState spawned = 2;
+    repeated EntityState updated = 3;
+    repeated uint64 died = 4;
+    repeated ResourceState resource_changes = 5;
+    uint32 entity_count = 6;
+}

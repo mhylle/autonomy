@@ -1,0 +1,36 @@
+[      85ms] TypeError: this._cancelResize is not a function
+    at _Application.destroy (http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1523:8)
+    at http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1764:19
+    at Array.forEach (<anonymous>)
+    at _Application.destroy (http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1763:11)
+    at WorldRenderer.destroy (http://localhost:5173/src/renderer/WorldRenderer.ts?t=1773482531015:185:12)
+    at http://localhost:5173/src/App.tsx?t=1773482531015:61:13
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:12908:5)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:851:66)
+    at commitHookEffectListUnmount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:6642:149)
+    at commitHookPassiveUnmountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:6655:55)
+[      81ms] [WARNING] %s
+
+%s
+ An error occurred in the <App> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/@vite/client:509
+[      88ms] TypeError: this._cancelResize is not a function
+    at _Application.destroy (http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1523:8)
+    at http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1764:19
+    at Array.forEach (<anonymous>)
+    at _Application.destroy (http://localhost:5173/node_modules/.vite/deps/pixi__js.js?v=e6ea9236:1763:11)
+    at WorldRenderer.destroy (http://localhost:5173/src/renderer/WorldRenderer.ts?t=1773482531015:185:12)
+    at http://localhost:5173/src/App.tsx?t=1773482531015:61:13
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:12908:5)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:851:66)
+    at commitHookEffectListUnmount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:6642:149)
+    at commitHookPassiveUnmountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bcdaa024:6655:55)
+[      82ms] [WARNING] %s
+
+%s
+ An error occurred in the <App> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/@vite/client:509
+[   21084ms] [WARNING] [.WebGL-0x256400118400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[   21332ms] [WARNING] [.WebGL-0x256400118400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[   21431ms] [WARNING] [.WebGL-0x256400118400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:5173/:0
+[   21518ms] [WARNING] [.WebGL-0x256400118400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://localhost:5173/:0
